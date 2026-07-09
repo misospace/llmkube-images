@@ -27,13 +27,19 @@ RUN mkdir -p /out /tmp/vresolve \
 # runtime, so the copied binary is ABI-compatible.
 FROM node:24-bookworm-slim@sha256:cb4e8f7c443347358b7875e717c29e27bf9befc8f5a26cf18af3c3dec80e58c5 AS node
 
-# Runtime: Python 3.14 + Node 22 (the languages this fleet's coder self-gate
-# targets) + git + the linters the gate runs. No Go: the target repos are
-# Python/Node and the agent binary is static.
+# Go toolchain stage: deliberately NOT pinned to $BUILDPLATFORM so it resolves to
+# the TARGET arch — the Go SDK copied into the runtime must match the image's
+# platform (the build stage above is builder-arch and only cross-compiles the
+# agent). Same digest as the build stage; the manifest resolves per-arch.
+FROM golang:1.26-bookworm@sha256:18aedc16aa19b3fd7ded7245fc14b109e054d65d22ed53c355c899582bbb2113 AS goruntime
+
+# Runtime: Python 3.14 + Node 22 + Go 1.26 — the polyglot self-gate targets any
+# of the three; git + the per-language linters the gate runs. The agent binary is
+# static, so the Go SDK here is purely for the coder's go build/test/vet gate.
 FROM python:3.14-slim-bookworm@sha256:4ff4b92a68355dbdb52584ab3391dff8d371a61d4e063468bfd0130e3189c6d9
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
-      org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node self-gate toolchain" \
+      org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go self-gate toolchain" \
       org.opencontainers.image.source="https://github.com/defilantech/LLMKube" \
       org.opencontainers.image.licenses="Apache-2.0"
 
@@ -74,11 +80,18 @@ RUN npm install -g --no-fund --no-audit \
       "eslint@${ESLINT_VERSION}" "prisma@${PRISMA_VERSION}" "typescript@${TYPESCRIPT_VERSION}" \
     && rm -rf /root/.npm
 
+# Go 1.26 toolchain (target-arch) for the Go self-gate: go build/test/vet/gofmt.
+COPY --from=goruntime /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+
 # Read-only-rootfs friendly: all writable state under /tmp, and git operates on
 # the workspace regardless of the (possibly pod-overridden) uid.
 ENV HOME=/tmp \
     npm_config_cache=/tmp/.npm \
-    PIP_CACHE_DIR=/tmp/.pip
+    PIP_CACHE_DIR=/tmp/.pip \
+    GOCACHE=/tmp/.gocache \
+    GOMODCACHE=/tmp/.gomodcache \
+    GOPATH=/tmp/go
 RUN git config --system --add safe.directory '*'
 
 COPY --from=build /out/foreman-agent /foreman-agent
