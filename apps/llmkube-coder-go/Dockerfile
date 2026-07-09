@@ -35,10 +35,20 @@ RUN apt-get update \
 
 # Go self-gate linter.
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-ARG GOLANGCI_LINT_VERSION=1.64.8
-RUN go install "github.com/golangci/golangci-lint/cmd/golangci-lint@v${GOLANGCI_LINT_VERSION}" \
-    && mv "$(go env GOPATH)/bin/golangci-lint" /usr/local/bin/golangci-lint \
-    && rm -rf /root/.cache/go-build
+ARG GOLANGCI_LINT_VERSION=2.12.2
+# golangci-lint v2+ carries the major version in its Go module path
+# (github.com/golangci/golangci-lint/v2/...); v0/v1 do not. Derive it from the
+# version so a future major bump doesn't re-break the install.
+RUN set -eux; \
+    major="${GOLANGCI_LINT_VERSION%%.*}"; \
+    if [ "${major}" -ge 2 ]; then \
+      modpath="github.com/golangci/golangci-lint/v${major}/cmd/golangci-lint"; \
+    else \
+      modpath="github.com/golangci/golangci-lint/cmd/golangci-lint"; \
+    fi; \
+    go install "${modpath}@v${GOLANGCI_LINT_VERSION}"; \
+    mv "$(go env GOPATH)/bin/golangci-lint" /usr/local/bin/golangci-lint; \
+    rm -rf /root/.cache/go-build
 
 # Read-only-rootfs friendly: all writable Go state under /tmp, and git operates
 # on the workspace regardless of the (possibly pod-overridden) uid.
