@@ -35,7 +35,7 @@ RUN apt-get update \
 
 # Go self-gate linter.
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-ARG GOLANGCI_LINT_VERSION=1.64.8
+ARG GOLANGCI_LINT_VERSION=2.12.2
 RUN go install "github.com/golangci/golangci-lint/cmd/golangci-lint@v${GOLANGCI_LINT_VERSION}" \
     && mv "$(go env GOPATH)/bin/golangci-lint" /usr/local/bin/golangci-lint \
     && rm -rf /root/.cache/go-build
