@@ -2,6 +2,7 @@ name: AI PR Review
 
 on:
   pull_request:
+    branches: ["main"]
     # `labeled` enables the one-click re-review: add the `ai-review` label to
     # force a fresh review (only write/triage can label — self-authorizing).
     types: [opened, reopened, synchronize, ready_for_review, labeled]
@@ -21,7 +22,6 @@ jobs:
   review:
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -34,14 +34,14 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          client-id: ${{ secrets.SAFFRON_APP_ID }}
-          private-key: ${{ secrets.SAFFRON_APP_PRIVATE_KEY }}
+          client-id: ${{ secrets.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
           permission-contents: read
           permission-pull-requests: write
 
-      - name: Analyze PR with reusable AI reviewer
+      - name: Review PR with reusable AI reviewer
         if: github.event_name == 'pull_request'
-        id: analyze
+        id: review
         uses: misospace/pr-reviewer-action@41d9ffadf39c7f317ef3cb6885d9f48447dcad23 # v2.1.1
         with:
           github_token: ${{ steps.app-token.outputs.token }}
@@ -62,10 +62,9 @@ jobs:
           ai_smart_api_format: ${{ vars.SMART_FORMAT }}
           ai_smart_model: ${{ vars.SMART_MODEL }}
           ai_smart_api_key: ${{ secrets.LITELLM_API_KEY }}
-          allowed_source_hosts: "*"
           context_limit_mode: normal
           ci_status_check: "true"
-          ci_timeout_sec: "1200"
+          ci_timeout_sec: "600"
           tool_mode: native_loop
           tool_max_rounds: "2"
           tool_max_requests: "4"
@@ -77,7 +76,6 @@ jobs:
           tool_allowed_gh_api_repos: "*"
           tool_request_timeout_sec: "15"
           tool_enable_for_forks: "false"
-          standards_file_candidates: "AGENTS.md,.agents/*"
           on_model_failure: notice
           inline_findings: "true"
           verdict_policy: findings_severity_gated
