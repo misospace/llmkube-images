@@ -12,6 +12,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/log"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/moby/moby/api/types/container"
 	dockerclient "github.com/moby/moby/client"
 )
 
@@ -27,6 +28,11 @@ func GetTestImage(defaultImage string) string {
 // ContainerConfig holds optional container configuration
 type ContainerConfig struct {
 	Env map[string]string // Environment variables to set in the container
+	// ReadOnlyRootfs runs the container with a read-only root filesystem plus a
+	// writable tmpfs /tmp — mirroring how the foreman verify gate runs images.
+	// The old apt-based Godot gate failed exactly here, so the gate image test
+	// asserts it works under this constraint.
+	ReadOnlyRootfs bool
 }
 
 // applyContainerConfig applies optional container configuration
@@ -39,6 +45,13 @@ func applyContainerConfig(config *ContainerConfig) []testcontainers.ContainerCus
 
 	if len(config.Env) > 0 {
 		opts = append(opts, testcontainers.WithEnv(config.Env))
+	}
+
+	if config.ReadOnlyRootfs {
+		opts = append(opts, testcontainers.WithHostConfigModifier(func(hc *container.HostConfig) {
+			hc.ReadonlyRootfs = true
+			hc.Tmpfs = map[string]string{"/tmp": "rw,exec,size=256m"}
+		}))
 	}
 
 	return opts
