@@ -34,13 +34,21 @@ RUN apt-get update \
 
 COPY --from=build /usr/local/bin/godot /usr/local/bin/godot
 
-# Read-only-rootfs friendly: all Godot/font/git writes land in the writable tmpfs
-# /tmp the gate mounts.
+# The gate runs as a non-root user; point all Godot/font/git state at world-
+# writable /tmp so no write lands on a root-owned path.
 ENV HOME=/tmp \
     XDG_CACHE_HOME=/tmp/.cache \
     XDG_CONFIG_HOME=/tmp/.config \
     XDG_DATA_HOME=/tmp/.local/share
 RUN git config --system --add safe.directory '*'
+
+# The foreman verify gate clones the target repo into /work and runs as this
+# image's non-root user. Create it world-writable (sticky, like /tmp) so the
+# clone — and Godot's in-project .godot import cache under `--path .` — can write
+# regardless of the (possibly pod-overridden) uid. Without this, `git clone …
+# /work` fails with "could not create work tree dir '/work': Permission denied"
+# because a non-root uid cannot mkdir under root-owned /.
+RUN mkdir -p /work && chmod 1777 /work
 
 USER 65534:65534
 ENTRYPOINT ["godot"]
