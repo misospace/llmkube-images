@@ -26,7 +26,7 @@ RUN mkdir -p /out /tmp/vresolve \
 # Runtime: Python 3.14 (the language this fleet's coder self-gate targets) +
 # git + the linters the gate runs. No Go: the target repos are Python and the
 # agent binary is static.
-FROM python:3.14-slim-bookworm@sha256:cac1946205b382b2a656412ca211a5f8b64f74c8e9dcd2146308fccbf2bac5f1
+FROM python:3.14-slim-bookworm@sha256:86f975aca15cf04a40b399eebede9aea7c82eae084d1f1a0a6ef6bcaae871a30
 
 LABEL org.opencontainers.image.title="llmkube-coder-python" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python self-gate toolchain" \
