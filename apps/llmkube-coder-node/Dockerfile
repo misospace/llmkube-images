@@ -26,7 +26,7 @@ RUN mkdir -p /out /tmp/vresolve \
 # Runtime: Node 22 (the language this fleet's coder self-gate targets) + git +
 # the linters the gate runs. No Go: the target repos are Node and the agent
 # binary is static.
-FROM node:24-bookworm-slim@sha256:39a4259b6f744868a8228742ad45aa3026f97302e5eec2fa4a38b30ca0a66e12
+FROM node:24-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
 
 LABEL org.opencontainers.image.title="llmkube-coder-node" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Node self-gate toolchain" \
