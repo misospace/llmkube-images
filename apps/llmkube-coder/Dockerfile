@@ -25,7 +25,7 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 22 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-bookworm-slim@sha256:cb4e8f7c443347358b7875e717c29e27bf9befc8f5a26cf18af3c3dec80e58c5 AS node
+FROM node:24-bookworm-slim@sha256:39a4259b6f744868a8228742ad45aa3026f97302e5eec2fa4a38b30ca0a66e12 AS node
 
 # Go toolchain stage: deliberately NOT pinned to $BUILDPLATFORM so it resolves to
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
@@ -36,7 +36,7 @@ FROM golang:1.26-bookworm@sha256:18aedc16aa19b3fd7ded7245fc14b109e054d65d22ed53c
 # Runtime: Python 3.14 + Node 22 + Go 1.26 — the polyglot self-gate targets any
 # of the three; git + the per-language linters the gate runs. The agent binary is
 # static, so the Go SDK here is purely for the coder's go build/test/vet gate.
-FROM python:3.14-slim-bookworm@sha256:4ff4b92a68355dbdb52584ab3391dff8d371a61d4e063468bfd0130e3189c6d9
+FROM python:3.14-slim-bookworm@sha256:cac1946205b382b2a656412ca211a5f8b64f74c8e9dcd2146308fccbf2bac5f1
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go self-gate toolchain" \
