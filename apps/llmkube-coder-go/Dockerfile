@@ -3,7 +3,7 @@
 # Build stage: cross-compile the static foreman-agent from LLMKube source.
 # CGO is disabled, so the binary runs on the Go runtime below. Pinned to
 # $BUILDPLATFORM + GOOS/GOARCH so the compiler always runs natively.
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:1a15e02ae3cdabf9cc5b7e6ef1de3e3a1933ddccbb082cdb67f6922c02d7e6d0 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:e60d708a92ad26a6d61901334510d3debd23ddcba125663ecd6008d42e8ec669 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -21,7 +21,7 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Runtime: the full Go toolchain — the coder self-gate runs `go build/test/vet`
 # on Go repos, so unlike the python/node coders the language runtime IS the SDK.
-FROM golang:1.26-bookworm@sha256:1a15e02ae3cdabf9cc5b7e6ef1de3e3a1933ddccbb082cdb67f6922c02d7e6d0
+FROM golang:1.26-bookworm@sha256:e60d708a92ad26a6d61901334510d3debd23ddcba125663ecd6008d42e8ec669
 
 LABEL org.opencontainers.image.title="llmkube-coder-go" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Go self-gate toolchain" \
