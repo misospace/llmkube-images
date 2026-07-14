@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python/Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:349ad04971da5f200a537641ae2c70774a592ca21fad4b513b65f813f546781a AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -31,7 +31,7 @@ FROM node:24-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the
 # agent). Same digest as the build stage; the manifest resolves per-arch.
-FROM golang:1.26-bookworm@sha256:349ad04971da5f200a537641ae2c70774a592ca21fad4b513b65f813f546781a AS goruntime
+FROM golang:1.26-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS goruntime
 
 # Runtime: Python 3.14 + Node 22 + Go 1.26 — the polyglot self-gate targets any
 # of the three; git + the per-language linters the gate runs. The agent binary is
