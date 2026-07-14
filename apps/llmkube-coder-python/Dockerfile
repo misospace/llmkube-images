@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:18aedc16aa19b3fd7ded7245fc14b109e054d65d22ed53c355c899582bbb2113 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:1a15e02ae3cdabf9cc5b7e6ef1de3e3a1933ddccbb082cdb67f6922c02d7e6d0 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
