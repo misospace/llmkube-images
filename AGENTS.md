@@ -120,3 +120,28 @@ Bad patterns to flag:
 - Dependency bot updates (renovate/) when they only update version comments in Go files or container versions
 - Documentation-only PRs
 - Auto-generated files from go generate or similar tooling
+
+## Test Image Selection
+
+Container integration tests under `apps/*/container_test.go` resolve the image
+to test via `testhelpers.GetTestImage(default)`. The helper reads the
+`TEST_IMAGE` environment variable first and falls back to the hardcoded
+`default` argument only when `TEST_IMAGE` is unset.
+
+CI workflows must export `TEST_IMAGE` to the exact digest (or tag) of the
+image they just published before invoking `go test`, so a stale or drifted
+`:rolling` tag at `ghcr.io/misospace/...` cannot silently test an old build.
+
+Local development should also set `TEST_IMAGE` explicitly, e.g.
+
+```
+TEST_IMAGE=ghcr.io/misospace/llmkube-coder:dev go test ./apps/llmkube-coder/...
+```
+
+Relying on the embedded fallback works, but the fallback value is the
+CI-published tag and may be replaced or invalidated between releases.
+
+When adding a new `apps/<name>/container_test.go`, always call
+`testhelpers.GetTestImage("ghcr.io/misospace/<name>:<tag>")` rather than
+hardcoding the image reference elsewhere, and add a comment above the call
+explaining that CI overrides the default via `TEST_IMAGE`.

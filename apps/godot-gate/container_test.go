@@ -7,6 +7,11 @@ import (
 )
 
 func Test(t *testing.T) {
+	// The default tag below is a pinned version of this image. godot-gate is
+	// version-pinned (not rolling) because the upstream Godot release drives the
+	// version. CI overrides TEST_IMAGE to the exact digest it just published, so
+	// local dev can also set TEST_IMAGE to a different tag if needed (e.g.
+	// TEST_IMAGE=ghcr.io/misospace/godot-gate:4.3).
 	image := testhelpers.GetTestImage("ghcr.io/misospace/godot-gate:4.2.2")
 
 	// Godot headless must run even under the strictest sandbox — read-only rootfs
