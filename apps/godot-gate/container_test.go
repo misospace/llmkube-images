@@ -7,7 +7,7 @@ import (
 )
 
 func Test(t *testing.T) {
-	image := testhelpers.GetTestImage("ghcr.io/misospace/godot-gate:4.2.2")
+	image := testhelpers.GetTestImage("ghcr.io/misospace/godot-gate:4.7.1")
 
 	// Godot headless must run even under the strictest sandbox — read-only rootfs
 	// with only /tmp writable — since all its state is redirected to /tmp. The

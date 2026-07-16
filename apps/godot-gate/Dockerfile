@@ -5,7 +5,7 @@
 # which is exactly why the previous apt-based gate could never run).
 FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818 AS build
 # renovate: datasource=github-releases depName=godotengine/godot
-ARG VERSION=4.2.2
+ARG VERSION=4.7.1
 ARG GODOT_STATUS=stable
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip ca-certificates \
@@ -15,11 +15,11 @@ RUN apt-get update \
     && mv "/tmp/godot/Godot_v${VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot \
     && chmod 0755 /usr/local/bin/godot
 
-# Runtime: Godot 4.2.2 headless gate for foreman verify gates (windowstead et al).
+# Runtime: Godot 4.7.1 headless gate for foreman verify gates (windowstead et al).
 # amd64 only — Godot upstream ships a linux x86_64 headless binary and the fleet
 # nodes are amd64 (the bake `image-all` pins linux/amd64).
 FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
-ARG VERSION=4.2.2
+ARG VERSION=4.7.1
 
 LABEL org.opencontainers.image.title="godot-gate" \
       org.opencontainers.image.description="Godot ${VERSION} headless runtime for foreman verify gates (read-only-rootfs safe)" \
