@@ -16,15 +16,50 @@ jobs:
     permissions:
       contents: read
     outputs:
-      changed-files: ${{ steps.changed-files.outputs.changed_files }}
+      changed-files: ${{ steps.compute-matrix.outputs.changed-files }}
     steps:
-      - name: Get changed files
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Get changed apps
         uses: bjw-s-labs/action-changed-files@a9a36fb08ce06db9b02fbd8026cc2c0945eb9841 # v0.6.0
-        id: changed-files
+        id: changed-apps
         with:
           path: apps
           include_only_directories: true
           max_depth: 1
+
+      # A change to any file in the shared dependency surface (go.mod,
+      # go.sum, or the cross-app testhelpers package) invalidates the
+      # cached build/test results for every app, so expand the matrix to
+      # include all apps when these paths change. This is what satisfies
+      # the issue #35 acceptance criterion that `go test ./...` be run
+      # after a dependency upgrade.
+      - name: Get changed shared files
+        uses: bjw-s-labs/action-changed-files@a9a36fb08ce06db9b02fbd8026cc2c0945eb9841 # v0.6.0
+        id: changed-shared
+        with:
+          path: |
+            go.mod
+            go.sum
+            testhelpers
+
+      - name: Get all apps
+        if: steps.changed-shared.outputs.changed_files != '[]'
+        uses: ./.github/actions/app-inventory
+        id: all-apps
+
+      - name: Compute matrix
+        id: compute-matrix
+        run: |
+          SHARED='${{ steps.changed-shared.outputs.changed_files }}'
+          if [ -n "$SHARED" ] && [ "$SHARED" != '[]' ]; then
+            echo "changed-files=${{ steps.all-apps.outputs.apps }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed-files=${{ steps.changed-apps.outputs.changed_files }}" >> "$GITHUB_OUTPUT"
+          fi
 
   build:
     if: ${{ needs.prepare.outputs.changed-files != '[]' }}
