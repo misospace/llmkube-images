@@ -7,14 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/moby/moby/api/types/container"
+	dockerclient "github.com/moby/moby/client"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/log"
 	"github.com/testcontainers/testcontainers-go/wait"
-
-	"github.com/docker/docker/api/types/container"
-	dockerclient "github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
 )
 
 // GetTestImage returns the image to test from TEST_IMAGE env var or falls back to the default
@@ -111,7 +109,7 @@ func TestHTTPEndpoint(t *testing.T, image string, httpConfig HTTPTestConfig, con
 
 	portStr := httpConfig.Port + "/tcp"
 
-	httpWait := wait.ForHTTP(httpConfig.Path).WithPort(nat.Port(portStr)).WithStatusCodeMatcher(func(status int) bool {
+	httpWait := wait.ForHTTP(httpConfig.Path).WithPort(portStr).WithStatusCodeMatcher(func(status int) bool {
 		return status == httpConfig.StatusCode
 	})
 	if httpConfig.Timeout > 0 {
@@ -121,7 +119,7 @@ func TestHTTPEndpoint(t *testing.T, image string, httpConfig HTTPTestConfig, con
 	opts := []testcontainers.ContainerCustomizer{
 		testcontainers.WithExposedPorts(portStr),
 		testcontainers.WithWaitStrategy(
-			wait.ForListeningPort(nat.Port(portStr)),
+			wait.ForListeningPort(portStr),
 			httpWait,
 		),
 	}
@@ -150,7 +148,7 @@ func TestFileExists(t *testing.T, image string, filePath string, _ *ContainerCon
 	require.NoError(t, err)
 	defer cli.Close()
 
-	_, err = cli.ContainerStatPath(ctx, ctr.GetContainerID(), filePath)
+	_, err = cli.ContainerStatPath(ctx, ctr.GetContainerID(), dockerclient.ContainerStatPathOptions{Path: filePath})
 	require.NoError(t, err, "file %q should exist in image %q", filePath, image)
 }
 
