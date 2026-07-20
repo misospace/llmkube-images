@@ -42,7 +42,7 @@ RUN apt-get update \
 # renovate: datasource=npm depName=eslint
 ARG ESLINT_VERSION=10.7.0
 # renovate: datasource=npm depName=prisma
-ARG PRISMA_VERSION=7.8.0
+ARG PRISMA_VERSION=7.9.0
 # renovate: datasource=npm depName=typescript
 ARG TYPESCRIPT_VERSION=7.0.2
 RUN npm install -g --no-fund --no-audit \
