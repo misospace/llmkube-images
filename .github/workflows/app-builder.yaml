@@ -133,7 +133,9 @@ jobs:
 
       - name: Add Include Directory to Build Context
         run: |
-          rsync -a --ignore-existing --progress ./include/ "./apps/${APP}/"
+          if [ -d ./include ]; then
+            rsync -a --ignore-existing ./include/ "./apps/${APP}/"
+          fi
 
       - name: Build App
         uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
