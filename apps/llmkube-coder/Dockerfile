@@ -58,7 +58,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 # Python self-gate linters.
 # renovate: datasource=pypi depName=ruff
-ARG RUFF_VERSION=0.15.22
+ARG RUFF_VERSION=0.16.0
 # renovate: datasource=pypi depName=black
 ARG BLACK_VERSION=26.5.1
 # renovate: datasource=pypi depName=flake8
@@ -71,7 +71,7 @@ RUN pip install --no-cache-dir \
 
 # Node self-gate linters.
 # renovate: datasource=npm depName=eslint
-ARG ESLINT_VERSION=10.7.0
+ARG ESLINT_VERSION=10.8.0
 # renovate: datasource=npm depName=prisma
 ARG PRISMA_VERSION=7.9.0
 # renovate: datasource=npm depName=typescript
