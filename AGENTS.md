@@ -8,7 +8,7 @@ You review pull requests for a rootless, semantically versioned, multi-architect
 - Individual container images under `apps/`
 - Test helpers in `testhelpers/`
 - A `docker-bake.hcl` build orchestration file
-- Go 1.25.1 module with `testcontainers-go` for integration testing
+- Go 1.26.5 module with `testcontainers-go` for integration testing
 
 ## Review Standards
 
