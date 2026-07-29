@@ -20,9 +20,8 @@ usage = '''
 arg "<app>"
 '''
 run = '''
-rsync -aqIP {{config_root}}/include/ {{config_root}}/apps/"$usage_app"/ .
 docker buildx bake --no-cache --metadata-file docker-bake.json --set=*.output=type=docker --load
-TEST_IMAGE="$(jq -r '."image-local"."image.name" | sub("^docker.io/library/"; "")' docker-bake.json)" go test -v {{config_root}}/apps/"$usage_app"/...
+TEST_IMAGE="$(jq -r '.\"image-local\".\"image.name\" | sub(\"^docker.io/library/\"; \"\")' docker-bake.json)" go test -v {{config_root}}/apps/"$1"/...
 '''
 
 [tasks.remote-build]
@@ -31,7 +30,7 @@ usage = '''
 arg "<app>"
 arg "[release]" help="release flag (default: false)"
 '''
-run = 'gh workflow run release.yaml -f app="$usage_app" -f release="${usage_release:-false}"'
+run = 'gh workflow run release.yaml -f app="$1" -f release="${2:-false}"'
 
 [tasks.generate-label-config]
 hide = true
