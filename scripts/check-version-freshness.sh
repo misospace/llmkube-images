@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 # check-version-freshness.sh — Compare docker-bake.hcl VERSION defaults against latest GitHub releases.
 # Exit 0 if all versions are current; exit 1 if any are outdated (with details printed to stdout).
+#
+# NOTE: GITHUB_TOKEN is required for authenticated GitHub API access. Without it, unauthenticated
+# requests are subject to a strict rate limit (~60 requests/hour), which will cause this script
+# to fail with a non-zero exit code. Set GITHUB_TOKEN to a personal access token (no scopes needed)
+# or use the CI-provided token. Example:
+#   export GITHUB_TOKEN="ghp_..."
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Require GITHUB_TOKEN to avoid silent failures on rate-limited unauthenticated requests.
+if [ -z "${GITHUB_TOKEN:-}" ]; then
+  echo "ERROR: GITHUB_TOKEN is required for GitHub API access."
+  echo "Unauthenticated requests are rate-limited (~60/hour) and will fail."
+  echo "Set GITHUB_TOKEN to a personal access token (no scopes needed):"
+  echo "  export GITHUB_TOKEN=\"ghp_...\""
+  exit 1
+fi
 
 OUTDATED=0
 TOTAL=0
@@ -57,18 +72,59 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
 
   # Fetch latest release tag from GitHub API
   latest_version=""
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    latest_version="$(curl -sL \
+  # Fetch latest release with retry logic for rate limits (429) and transient errors.
+  max_retries=3
+  retry_delay=5
+  response=""
+  http_code=""
+  for attempt in $(seq 1 $max_retries); do
+    read -r http_code body < <(curl -sL -w "%{http_code}" \
       -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/repos/$dep_name/releases/latest" \
-      | grep '"tag_name"' | head -1 | sed -n 's/.*"tag_name"\s*:\s*"\([^"]*\)".*/\1/p')"
-  else
-    latest_version="$(curl -sL \
-      -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/repos/$dep_name/releases/latest" \
-      | grep '"tag_name"' | head -1 | sed -n 's/.*"tag_name"\s*:\s*"\([^"]*\)".*/\1/p')"
+      "https://api.github.com/repos/$dep_name/releases/latest" 2>/dev/null)
+    # On rate limit (429), check Retry-After header and wait before retrying.
+    if [ "$http_code" = "429" ]; then
+      retry_after="$(curl -sL -D - \
+        -H "Authorization: Bearer $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/repos/$dep_name/releases/latest" 2>/dev/null | grep -i '^Retry-After:' | awk '{print $2}' | tr -d '\r')"
+      if [ -n "$retry_after" ] && [ "$retry_after" -gt 0 ] 2>/dev/null; then
+        echo "WARN: Rate limited for $dep_name. Waiting ${retry_after}s before retry (attempt $attempt/$max_retries)..."
+        sleep "$retry_after"
+      else
+        echo "WARN: Rate limited for $dep_name. Waiting ${retry_delay}s before retry (attempt $attempt/$max_retries)..."
+        sleep "$retry_delay"
+      fi
+      continue
+    fi
+    # On other 4xx/5xx errors, don't retry — fail immediately.
+    if [ "$http_code" = "403" ]; then
+      echo "ERROR: GitHub API returned 403 (forbidden) for $dep_name."
+      echo "Check that GITHUB_TOKEN is valid and has appropriate permissions."
+      exit 1
+    fi
+    if [ "$http_code" -ge 500 ] 2>/dev/null; then
+      echo "WARN: GitHub API returned HTTP $http_code for $dep_name (attempt $attempt/$max_retries)."
+      sleep "$retry_delay"
+      continue
+    fi
+    response="$body"
+    break
+  done
+
+  if [ -z "$response" ]; then
+    echo "ERROR: Failed to fetch latest release for $dep_name after $max_retries attempts."
+    exit 1
   fi
+
+  # Validate that the response contains tag_name before parsing.
+  if ! echo "$response" | grep -q '"tag_name"'; then
+    echo "ERROR: Unexpected GitHub API response for $dep_name (HTTP $http_code):"
+    echo "$response" | head -5
+    exit 1
+  fi
+
+  latest_version="$(echo "$response" | grep tag_name | head -1 | sed -n 's/.*"tag_name"\s*:\s*"\([^"]*\)".*/\1/p')"
 
   # Strip leading 'v' if present for comparison
   latest_clean="$(echo "$latest_version" | sed 's/^v//')"
