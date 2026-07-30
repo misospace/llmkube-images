@@ -17,3 +17,10 @@ func Test(t *testing.T) {
 	// Representative Node linter.
 	testhelpers.TestCommandSucceeds(t, image, nil, "eslint", "--version")
 }
+
+func TestReadOnlyRootfs(t *testing.T) {
+	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder-node:rolling")
+	roCfg := &testhelpers.ContainerConfig{ReadOnlyRootfs: true}
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "foreman-agent", "--version")
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "node", "--version")
+}

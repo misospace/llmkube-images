@@ -20,3 +20,12 @@ func Test(t *testing.T) {
 	testhelpers.TestCommandSucceeds(t, image, nil, "ruff", "--version")
 	testhelpers.TestCommandSucceeds(t, image, nil, "eslint", "--version")
 }
+
+func TestReadOnlyRootfs(t *testing.T) {
+	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
+	roCfg := &testhelpers.ContainerConfig{ReadOnlyRootfs: true}
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "foreman-agent", "--version")
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "python3", "--version")
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "node", "--version")
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "go", "version")
+}
