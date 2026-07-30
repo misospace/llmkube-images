@@ -16,3 +16,10 @@ func Test(t *testing.T) {
 	// Representative Go linter.
 	testhelpers.TestCommandSucceeds(t, image, nil, "golangci-lint", "--version")
 }
+
+func TestReadOnlyRootfs(t *testing.T) {
+	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder-go:rolling")
+	roCfg := &testhelpers.ContainerConfig{ReadOnlyRootfs: true}
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "foreman-agent", "--version")
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "go", "version")
+}
