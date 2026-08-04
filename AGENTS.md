@@ -128,8 +128,6 @@ The following `# zizmor: ignore[...]` suppressions are intentional and reviewed:
 | File | Line | Rule | Justification |
 |------|------|------|---------------|
 | `.github/workflows/mise-lock.yaml` | 28 | `bot-conditions` | Workflow intentionally only runs when triggered by `renovate[bot]`. The filter prevents manual or unrelated pushes from running the mise lock update. Revisit if non-bot triggers are needed. |
-| `.github/workflows/vulnerability-scan.yaml` | 52 | `template-injection` | Uses `${{ github.event.pull_request.head.sha }}` to pass the PR head SHA to Trivy. SHA values are not executable code and cannot inject payloads. Revisit if the value changes to user-controlled text (e.g., branch names). |
-| `.github/workflows/retry-release.yaml` | 96 | `template-injection` | Uses `${{ github.event.client_payload.workflow_run.head_sha }}` to pass the original workflow run's head SHA to docker/build-push-action. This SHA is from a completed CI run, not user input. Revisit if the value changes to user-controlled text. |
 
 ## Known Gaps & Technical Debt
 
