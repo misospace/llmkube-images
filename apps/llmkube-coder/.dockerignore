@@ -1,0 +1,14 @@
+# Test files not needed at build time
+container_test.go
+
+# Build configuration (Dockerfile is used directly)
+*.hcl
+*.md
+
+# IDE and OS artifacts
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
