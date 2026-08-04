@@ -93,10 +93,14 @@ jobs:
         name: Retry Release
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |- # zizmor: ignore[template-injection]
+          REPO: ${{ github.repository }}
+          APP: ${{ matrix.app }}
+          ACTUAL_VERSION: ${{ steps.registry.outputs.version }}
+          EXPECTED_VERSION: ${{ steps.app-options.outputs.version }}
+        run: |
           gh workflow run release.yaml \
-              --repo ${{ github.repository }} \
-              -f app=${{ matrix.app }} \
+              --repo "${REPO}" \
+              -f app="${APP}" \
               -f release=true
 
           {
@@ -104,5 +108,5 @@ jobs:
               echo
               echo '| App Name | Actual Version | Expected Version |'
               echo '|----------|----------------|------------------|'
-              echo '| `${{ matrix.app }}` | `${{ steps.registry.outputs.version }}` | `${{ steps.app-options.outputs.version }}` |'
+              printf '| `%s` | `%s` | `%s` |\n' "${APP}" "${ACTUAL_VERSION}" "${EXPECTED_VERSION}"
           } >> $GITHUB_STEP_SUMMARY
