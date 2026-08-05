@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:551752d3ad9de9923190bf5280500617ed8fee287ffb4b0220e770ef89346258 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -26,7 +26,7 @@ RUN mkdir -p /out /tmp/vresolve \
 # Runtime: Node 22 (the language this fleet's coder self-gate targets) + git +
 # the linters the gate runs. No Go: the target repos are Node and the agent
 # binary is static.
-FROM node:24-bookworm-slim@sha256:cd84903a12dbd26b46f1f3b8144a2568c41c5d37ddd0c7a80a34c7a19786b35f
+FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03
 
 LABEL org.opencontainers.image.title="llmkube-coder-node" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Node self-gate toolchain" \
