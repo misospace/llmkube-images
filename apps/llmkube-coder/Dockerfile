@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python/Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:f5b1ea492ad3e465d57c79dcea9393c2f0710ca2dce326078691851fd4307737 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:8d36439c36258ba98de1bf2b316eda72905f9d743117119f6db9705c49245644 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -31,12 +31,12 @@ FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba32756
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the
 # agent). Same digest as the build stage; the manifest resolves per-arch.
-FROM golang:1.26-bookworm@sha256:f5b1ea492ad3e465d57c79dcea9393c2f0710ca2dce326078691851fd4307737 AS goruntime
+FROM golang:1.26-bookworm@sha256:8d36439c36258ba98de1bf2b316eda72905f9d743117119f6db9705c49245644 AS goruntime
 
 # Runtime: Python 3.14 + Node 22 + Go 1.26 — the polyglot self-gate targets any
 # of the three; git + the per-language linters the gate runs. The agent binary is
 # static, so the Go SDK here is purely for the coder's go build/test/vet gate.
-FROM python:3.14-slim-bookworm@sha256:3a43e6cebf1773d3862ee9710b0b5c3d748426884cfeec086c0ca41c1bf4d8c3
+FROM python:3.14-slim-bookworm@sha256:4c92ffcde4dd6f1ff72a24518f49fd4990b27134987dfa31a733badde66df9f8
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go self-gate toolchain" \
