@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python/Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:551752d3ad9de9923190bf5280500617ed8fee287ffb4b0220e770ef89346258 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -25,18 +25,18 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 22 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-bookworm-slim@sha256:cd84903a12dbd26b46f1f3b8144a2568c41c5d37ddd0c7a80a34c7a19786b35f AS node
+FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS node
 
 # Go toolchain stage: deliberately NOT pinned to $BUILDPLATFORM so it resolves to
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the
 # agent). Same digest as the build stage; the manifest resolves per-arch.
-FROM golang:1.26-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS goruntime
+FROM golang:1.26-bookworm@sha256:551752d3ad9de9923190bf5280500617ed8fee287ffb4b0220e770ef89346258 AS goruntime
 
 # Runtime: Python 3.14 + Node 22 + Go 1.26 — the polyglot self-gate targets any
 # of the three; git + the per-language linters the gate runs. The agent binary is
 # static, so the Go SDK here is purely for the coder's go build/test/vet gate.
-FROM python:3.14-slim-bookworm@sha256:86f975aca15cf04a40b399eebede9aea7c82eae084d1f1a0a6ef6bcaae871a30
+FROM python:3.14-slim-bookworm@sha256:f54824948519b8cdb0f94ed59db98c1388b39a7c945963d91f3e2ebe89b1d122
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go self-gate toolchain" \
