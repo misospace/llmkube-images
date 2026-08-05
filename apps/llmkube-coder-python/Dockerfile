@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:551752d3ad9de9923190bf5280500617ed8fee287ffb4b0220e770ef89346258 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:f5b1ea492ad3e465d57c79dcea9393c2f0710ca2dce326078691851fd4307737 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -26,7 +26,7 @@ RUN mkdir -p /out /tmp/vresolve \
 # Runtime: Python 3.14 (the language this fleet's coder self-gate targets) +
 # git + the linters the gate runs. No Go: the target repos are Python and the
 # agent binary is static.
-FROM python:3.14-slim-bookworm@sha256:f54824948519b8cdb0f94ed59db98c1388b39a7c945963d91f3e2ebe89b1d122
+FROM python:3.14-slim-bookworm@sha256:3a43e6cebf1773d3862ee9710b0b5c3d748426884cfeec086c0ca41c1bf4d8c3
 
 LABEL org.opencontainers.image.title="llmkube-coder-python" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python self-gate toolchain" \
