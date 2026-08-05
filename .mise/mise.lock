@@ -179,14 +179,18 @@ checksum = "sha256:51c59de738843677a3c97bccbdbf9895141cb308bf25a95daeafd1aade09f
 url = "https://nodejs.org/dist/v26.6.0/node-v26.6.0-linux-arm64.tar.gz"
 
 [tools.node."platforms.linux-arm64-musl"]
-url = "https://unofficial-builds.nodejs.org/download/release/v26.6.0/node-v26.6.0-linux-arm64-musl.tar.gz"
+checksum = "sha256:0c1a4512ceb6ab37404900762cf325326faafed9ea96e726af6b003acf22322a"
+url = "https://nodejs.org/dist/v26.6.0/node-v26.6.0.tar.gz"
+install = "source"
 
 [tools.node."platforms.linux-x64"]
 checksum = "sha256:714f352a7539c5ce09af15e440cbaadbe935bb23ba23fcee66b066d00a063822"
 url = "https://nodejs.org/dist/v26.6.0/node-v26.6.0-linux-x64.tar.gz"
 
 [tools.node."platforms.linux-x64-musl"]
-url = "https://unofficial-builds.nodejs.org/download/release/v26.6.0/node-v26.6.0-linux-x64-musl.tar.gz"
+checksum = "sha256:0c1a4512ceb6ab37404900762cf325326faafed9ea96e726af6b003acf22322a"
+url = "https://nodejs.org/dist/v26.6.0/node-v26.6.0.tar.gz"
+install = "source"
 
 [tools.node."platforms.macos-arm64"]
 checksum = "sha256:75480cd43b6fcb35d8e772dd18983fbd9f691b2f03b1c94393206098e9944b5e"
