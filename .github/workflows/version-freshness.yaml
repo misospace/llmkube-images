@@ -21,4 +21,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          ./scripts/check-version-freshness.sh || true
+          ./scripts/check-version-freshness.sh
