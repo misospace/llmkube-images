@@ -46,8 +46,23 @@ jobs:
         env:
           APP: ${{ inputs.app }}
         run: |
+          # Validate APP input against a strict safe pattern (rejects path traversal)
+          if [[ ! "$APP" =~ ^[a-z0-9][a-z0-9-]+$ ]]; then
+            echo "::error::Invalid app name '${APP}'. Must match ^[a-z0-9][a-z0-9-]+$"
+            exit 1
+          fi
+
+          # Check directory exists
           if [[ ! -d "./apps/${APP}" ]]; then
             echo "::error::App directory './apps/${APP}' does not exist"
+            exit 1
+          fi
+
+          # Confirm the resolved path stays under apps/ (defense-in-depth for symlinks)
+          RESOLVED="$(cd "./apps/${APP}" && pwd)"
+          BASE="$(pwd)/apps"
+          if [[ "${RESOLVED}" != "${BASE}/"* ]]; then
+            echo "::error::Resolved path '${RESOLVED}' is outside apps/ directory"
             exit 1
           fi
 
