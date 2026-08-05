@@ -32,6 +32,9 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - apps
+    permissions:
+      contents: read
+      actions: write
     strategy:
       matrix:
         app: ${{ fromJSON(needs.apps.outputs.apps) }}
@@ -49,7 +52,6 @@ jobs:
         with:
           client-id: ${{ secrets.BOT_CLIENT_ID }}
           private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
-          permission-actions: write
           permission-packages: read
           permission-pull-requests: read
 
@@ -92,7 +94,7 @@ jobs:
       - if: ${{ steps.find-pull-request.outputs.number != '' }}
         name: Retry Release
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           APP: ${{ matrix.app }}
           ACTUAL_VERSION: ${{ steps.registry.outputs.version }}
