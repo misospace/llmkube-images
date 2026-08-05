@@ -27,6 +27,10 @@ RUN mkdir -p /out /tmp/vresolve \
 # runtime, so the copied binary is ABI-compatible.
 FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS node
 
+# Upgrade npm to latest to patch CVEs in vendored deps (ip-address, brace-expansion, tar).
+# See: https://github.com/misospace/llmkube-images/issues/126
+RUN npm install -g npm@latest
+
 # Go toolchain stage: deliberately NOT pinned to $BUILDPLATFORM so it resolves to
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the

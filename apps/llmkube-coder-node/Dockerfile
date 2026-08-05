@@ -28,6 +28,10 @@ RUN mkdir -p /out /tmp/vresolve \
 # binary is static.
 FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03
 
+# Upgrade npm to latest to patch CVEs in vendored deps (ip-address, brace-expansion, tar).
+# See: https://github.com/misospace/llmkube-images/issues/126
+RUN npm install -g npm@latest
+
 LABEL org.opencontainers.image.title="llmkube-coder-node" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Node self-gate toolchain" \
       org.opencontainers.image.source="https://github.com/defilantech/LLMKube" \
