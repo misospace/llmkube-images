@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:8d36439c36258ba98de1bf2b316eda72905f9d743117119f6db9705c49245644 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:6c5605ab3a9a9fb3c4eafe5b3d63cdbf3881caf113262b67862547b54a9db599 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
