@@ -79,3 +79,8 @@ runs:
           core.setOutput('semantic', semanticVersion);
           core.setOutput('raw', rawVersion);
           core.setOutput('upstream', upstreamVersion);
+
+    - name: Cleanup Node Dependencies
+      if: always()
+      shell: bash
+      run: rm -rf package.json package-lock.json node_modules
