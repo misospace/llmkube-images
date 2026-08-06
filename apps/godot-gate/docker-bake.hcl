@@ -6,7 +6,7 @@ variable "APP" {
 
 variable "VERSION" {
   // renovate: datasource=github-releases depName=godotengine/godot
-  default = "4.2.2"
+  default = "4.7.1"
 }
 
 variable "SOURCE" {
