@@ -62,7 +62,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 # Python self-gate linters.
 # renovate: datasource=pypi depName=ruff
-ARG RUFF_VERSION=0.16.1
+ARG RUFF_VERSION=0.16.2
 # renovate: datasource=pypi depName=black
 ARG BLACK_VERSION=26.5.1
 # renovate: datasource=pypi depName=flake8
