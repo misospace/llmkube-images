@@ -28,7 +28,7 @@ runs:
     - name: Create package.json
       shell: bash
       run: |
-        cat > package.json << 'EOF'
+        cat > "$RUNNER_TEMP/package.json" << 'EOF'
         {
           "dependencies": {
             "semver": "^7.7.2"
@@ -44,12 +44,14 @@ runs:
 
     - name: Setup Node Dependencies
       shell: bash
+      working-directory: ${{ runner.temp }}
       run: |
         npm install
 
     - name: App Versions
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       id: versions
+      working-directory: ${{ runner.temp }}
       env:
         UPSTREAM_VERSION: ${{ inputs.upstream-version }}
       with:

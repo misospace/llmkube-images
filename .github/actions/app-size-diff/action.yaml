@@ -22,7 +22,7 @@ runs:
     - name: Create package.json
       shell: bash
       run: |
-        cat > package.json << 'EOF'
+        cat > "$RUNNER_TEMP/package.json" << 'EOF'
         {
           "dependencies": {
             "execa": "^9.6.0",
@@ -41,12 +41,14 @@ runs:
 
     - name: Setup Node Dependencies
       shell: bash
+      working-directory: ${{ runner.temp }}
       run: |
         npm install
 
     - name: App Size Diff
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       id: size-diff
+      working-directory: ${{ runner.temp }}
       env:
         FROM_APP: ${{ inputs.from-app }}
         TO_APP: ${{ inputs.to-app }}
