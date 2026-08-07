@@ -15,9 +15,12 @@ LABEL org.opencontainers.image.title="elixir-gate" \
 
 # build-essential: ecto_sqlite3 (and other NIF deps) compile C at `mix deps.compile`.
 # git + ca-certificates: the gate clones the target repo and mix fetches over https.
+# curl + unzip: projects fetch native SQLite extensions during setup — pinchflat's
+# tooling/fetch-sqlean.sh downloads and unzips sqlean, and its Repo loads that
+# extension OUTSIDE the prod guard, so `mix test` needs it too.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential ca-certificates git \
+        build-essential ca-certificates curl git unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Hex and rebar archives go into a world-READABLE shared MIX_HOME rather than
