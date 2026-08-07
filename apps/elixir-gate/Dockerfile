@@ -5,8 +5,8 @@
 # uid with no network guarantees and cannot apt-install, so a stock elixir image
 # plus runtime installs is not viable.
 # renovate: datasource=docker depName=hexpm/elixir
-ARG VERSION=1.18.4-erlang-27.0.1-debian-bookworm-20260803
-FROM hexpm/elixir:${VERSION}@sha256:cfb9f27717813643b9a3c18976315c41139cf6dfa8f3b4a94230df8f883773a6
+ARG VERSION=1.20.3-erlang-27.0.1-debian-bookworm-20260803
+FROM hexpm/elixir:${VERSION}@sha256:ceaeabd3ca1cc4a0df72755ae431063a3f48dbeca32e17c7fec266d2c70c0550
 
 LABEL org.opencontainers.image.title="elixir-gate" \
       org.opencontainers.image.description="Elixir/OTP toolchain for foreman verify gates (rootless, read-only-rootfs safe)" \
