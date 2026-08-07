@@ -6,7 +6,7 @@
 # plus runtime installs is not viable.
 # renovate: datasource=docker depName=hexpm/elixir
 ARG VERSION=1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1
-FROM hexpm/elixir:${VERSION}@sha256:ceaeabd3ca1cc4a0df72755ae431063a3f48dbeca32e17c7fec266d2c70c0550
+FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a2ad0a59741cd870adfdc
 
 LABEL org.opencontainers.image.title="elixir-gate" \
       org.opencontainers.image.description="Elixir/OTP toolchain for foreman verify gates (rootless, read-only-rootfs safe)" \
