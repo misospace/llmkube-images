@@ -5,7 +5,7 @@
 # uid with no network guarantees and cannot apt-install, so a stock elixir image
 # plus runtime installs is not viable.
 # renovate: datasource=docker depName=hexpm/elixir
-ARG VERSION=1.20.3-erlang-27.0.1-debian-bookworm-20260803
+ARG VERSION=1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1
 FROM hexpm/elixir:${VERSION}@sha256:ceaeabd3ca1cc4a0df72755ae431063a3f48dbeca32e17c7fec266d2c70c0550
 
 LABEL org.opencontainers.image.title="elixir-gate" \
