@@ -129,6 +129,20 @@ The following `# zizmor: ignore[...]` suppressions are intentional and reviewed:
 |------|------|------|---------------|
 | `.github/workflows/mise-lock.yaml` | 28 | `bot-conditions` | Workflow intentionally only runs when triggered by `renovate[bot]`. The filter prevents manual or unrelated pushes from running the mise lock update. Revisit if non-bot triggers are needed. |
 
+## Container Test Patterns
+
+All five container test files (`apps/llmkube-coder/container_test.go`, `apps/llmkube-coder-go/container_test.go`, `apps/llmkube-coder-node/container_test.go`, `apps/llmkube-coder-python/container_test.go`, `apps/godot-gate/container_test.go`) resolve the image under test through `testhelpers.GetTestImage()`, which reads the `$TEST_IMAGE` environment variable first and falls back to a hardcoded default tag when the variable is unset.
+
+- **CI** sets `TEST_IMAGE` to the freshly built image reference (digest or `:rolling` tag) before invoking `go test`. This is the value actually exercised in CI.
+- **Local development** can set `TEST_IMAGE` to test a specific image, or leave it unset to rely on the hardcoded fallback in each test file.
+- **The hardcoded default in each test file is the fallback**, not the CI-set value. Treat it as a last-resort value: keep it pointing at a stable, immutable tag (e.g. `:rolling` for the coder images, an explicit version such as `:4.7.1` for godot-gate) and never use a mutable tag such as `:latest` here — the rest of this repository emphasises digest-immutability for the same reason.
+
+Example call site:
+
+```go
+image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder-go:rolling")
+```
+
 ## Known Gaps & Technical Debt
 
 - **No automated integration tests**: The CI pipeline only runs `docker buildx bake` for syntax validation. There are no end-to-end tests that start containers and verify LLM endpoints respond correctly.

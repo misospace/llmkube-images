@@ -7,6 +7,8 @@ import (
 )
 
 func Test(t *testing.T) {
+	// Default tag is the fallback used when $TEST_IMAGE is unset; CI sets
+	// $TEST_IMAGE to the freshly built image. See AGENTS.md → Container Test Patterns.
 	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
 	testhelpers.TestFileExists(t, image, "/foreman-agent", nil)
 	// The agent binary and all three language toolchains the coder self-gate uses.
@@ -22,6 +24,8 @@ func Test(t *testing.T) {
 }
 
 func TestReadOnlyRootfs(t *testing.T) {
+	// Default tag is the fallback used when $TEST_IMAGE is unset; CI sets
+	// $TEST_IMAGE to the freshly built image. See AGENTS.md → Container Test Patterns.
 	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
 	roCfg := &testhelpers.ContainerConfig{ReadOnlyRootfs: true}
 	testhelpers.TestCommandSucceeds(t, image, roCfg, "foreman-agent", "--version")
