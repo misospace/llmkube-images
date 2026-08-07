@@ -44,7 +44,7 @@ RUN apt-get update \
 
 # Node self-gate linters.
 # renovate: datasource=npm depName=eslint
-ARG ESLINT_VERSION=10.8.0
+ARG ESLINT_VERSION=10.8.1
 # renovate: datasource=npm depName=prisma
 ARG PRISMA_VERSION=7.9.1
 # renovate: datasource=npm depName=typescript
