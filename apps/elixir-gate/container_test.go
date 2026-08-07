@@ -32,6 +32,13 @@ cd smoke
 mix test 2>&1 | grep -qE '[1-9][0-9]* (test|doctest)'
 echo GATE_SMOKE_OK`)
 
+	// Native SQLite extensions are fetched during project setup — pinchflat's
+	// tooling/fetch-sqlean.sh curls a zip and unzips it, and its Repo loads that
+	// extension outside the prod guard, so `mix test` fails without it. bash too:
+	// the script uses [[ ]].
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "sh", "-c",
+		`command -v curl && command -v unzip && command -v bash`)
+
 	// The gate clones into /work as a possibly-overridden uid; that must not fail
 	// on a permission error the way an unprepared root-owned /work does.
 	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c",
