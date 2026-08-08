@@ -1,5 +1,10 @@
 target "docker-metadata-action" {}
 
+variable "GODOT_SHA512" {
+  // From the release's own SHA512-SUMS.txt; bump with GODOT_VERSION.
+  default = "4c0294f437b97cf14f848d921ed028cb6e100ebbfcf6480f2d50292d001221cf29cda73f0a96a8c0e80b145b65cdbf7e422252dbbe17e79d883753e500306276"
+}
+
 variable "APP" {
   default = "llmkube-coder-godot"
 }
@@ -24,6 +29,7 @@ target "image" {
   inherits = ["docker-metadata-action"]
   args = {
     VERSION = "${VERSION}"
+    GODOT_SHA512 = "${GODOT_SHA512}"
   }
   labels = {
     "org.opencontainers.image.source" = "${SOURCE}"

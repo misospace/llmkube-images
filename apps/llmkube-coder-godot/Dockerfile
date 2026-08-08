@@ -31,6 +31,10 @@ FROM debian:bookworm-slim@sha256:abd67ffcfa541b485a3dff59865ab629aa048a6c613e639
 # renovate: datasource=github-releases depName=godotengine/godot
 ARG GODOT_VERSION=4.2.2
 ARG GODOT_STATUS=stable
+# SHA512 from the release's own SHA512-SUMS.txt. Must be updated alongside
+# GODOT_VERSION — a stale digest fails the build loudly rather than installing
+# an unverified engine.
+ARG GODOT_SHA512=4c0294f437b97cf14f848d921ed028cb6e100ebbfcf6480f2d50292d001221cf29cda73f0a96a8c0e80b145b65cdbf7e422252dbbe17e79d883753e500306276
 
 LABEL org.opencontainers.image.title="llmkube-coder-godot" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Godot headless self-gate toolchain" \
@@ -43,6 +47,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates curl git libfontconfig1 unzip \
     && curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip" -o /tmp/godot.zip \
+    && echo "${GODOT_SHA512}  /tmp/godot.zip" | sha512sum -c - \
     && unzip -oq /tmp/godot.zip -d /tmp/godot \
     && mv "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot \
     && chmod 0755 /usr/local/bin/godot \
