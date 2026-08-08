@@ -9,7 +9,7 @@ variable "VERSION" {
   // ARG at build time (via -set or env vars) and does not modify HCL defaults.
   // Always pass VERSION explicitly when running `docker buildx bake image-local`.
   // renovate: datasource=github-releases depName=defilantech/llmkube
-  default = "0.9.14"
+  default = "0.9.15"
 }
 
 variable "SOURCE" {
