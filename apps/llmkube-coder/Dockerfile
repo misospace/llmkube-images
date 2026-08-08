@@ -37,21 +37,68 @@ RUN npm install -g npm@latest
 # agent). Same digest as the build stage; the manifest resolves per-arch.
 FROM golang:1.26-bookworm@sha256:6c5605ab3a9a9fb3c4eafe5b3d63cdbf3881caf113262b67862547b54a9db599 AS goruntime
 
-# Runtime: Python 3.14 + Node 22 + Go 1.26 — the polyglot self-gate targets any
-# of the three; git + the per-language linters the gate runs. The agent binary is
-# static, so the Go SDK here is purely for the coder's go build/test/vet gate.
+# Elixir/OTP source stage: same Debian base as the runtime, so the copied
+# trees are ABI-compatible. Erlang lives in /usr/local/lib/erlang and Elixir in
+# /usr/local/lib/elixir; both relocate as whole directories.
+FROM hexpm/elixir:1.18.4-erlang-27.0.1-debian-bookworm-20260803@sha256:cfb9f27717813643b9a3c18976315c41139cf6dfa8f3b4a94230df8f883773a6 AS elixir
+
+# Runtime: Python 3.14 + Node + Go 1.26 + Godot headless + Elixir/OTP — one
+# image for every coder self-gate. Rootless coders cannot install anything at
+# run time, so every fleet runtime is baked here instead (the modern
+# replacement for the old root-and-apt-get pods). amd64 only: Godot upstream
+# ships a linux x86_64 headless binary and the fleet nodes are amd64.
 FROM python:3.14-slim-bookworm@sha256:23c59390fc717bf09f9336908199a0ae75d9c4264bf296123f94ad772fea3b52
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
-      org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go self-gate toolchain" \
+      org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go + Godot + Elixir self-gate toolchain" \
       org.opencontainers.image.source="https://github.com/defilantech/LLMKube" \
       org.opencontainers.image.licenses="Apache-2.0"
 
-# git for the coder workspace; libstdc++6 is Node's only runtime dep beyond the
-# python-slim base.
+# git for the coder workspace; libstdc++6 for Node and the BEAM; libtinfo6 for
+# OTP; libfontconfig1 for Godot headless; build-essential because Elixir NIF
+# deps (ecto_sqlite3 et al) compile C during mix deps.compile.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git ca-certificates libstdc++6 \
+    && apt-get install -y --no-install-recommends \
+        git ca-certificates libstdc++6 libtinfo6 libfontconfig1 build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+# Godot headless. Fetched at build time (rootless coders cannot install at run
+# time) and verified against the release's own SHA512-SUMS.txt — a stale digest
+# fails the build loudly rather than installing an unverified engine.
+# renovate: datasource=github-releases depName=godotengine/godot
+ARG GODOT_VERSION=4.7.1
+ARG GODOT_STATUS=stable
+ARG GODOT_SHA512=4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl unzip \
+    && curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip" -o /tmp/godot.zip \
+    && echo "${GODOT_SHA512}  /tmp/godot.zip" | sha512sum -c - \
+    && unzip -oq /tmp/godot.zip -d /tmp/godot \
+    && mv "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot \
+    && chmod 0755 /usr/local/bin/godot \
+    && rm -rf /tmp/godot.zip /tmp/godot /var/lib/apt/lists/* \
+    && apt-get purge -y --auto-remove curl unzip
+
+# Elixir/OTP from the hexpm stage. Hex and rebar are installed into a
+# world-READABLE shared MIX_HOME: the runtime uid is unknown at build time and
+# $HOME is a scratch dir, so a HOME-local install would be invisible to the
+# process that runs mix. HEX_HOME (hex's package CACHE, written during mix
+# deps.get) points at /tmp below instead — putting it beside the read-only
+# archives breaks the first real fetch.
+COPY --from=elixir /usr/local/lib/erlang /usr/local/lib/erlang
+COPY --from=elixir /usr/local/lib/elixir /usr/local/lib/elixir
+ENV MIX_HOME=/opt/mix
+RUN ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl \
+    && ln -sf /usr/local/lib/erlang/bin/erlc /usr/local/bin/erlc \
+    && ln -sf /usr/local/lib/elixir/bin/elixir /usr/local/bin/elixir \
+    && ln -sf /usr/local/lib/elixir/bin/elixirc /usr/local/bin/elixirc \
+    && ln -sf /usr/local/lib/elixir/bin/mix /usr/local/bin/mix \
+    && ln -sf /usr/local/lib/elixir/bin/iex /usr/local/bin/iex \
+    && mkdir -p /opt/mix \
+    && mix local.hex --force \
+    && mix local.rebar --force \
+    && chmod -R a+rX /opt/mix \
+    && elixir --version
 
 # Node 22 + npm from the official image.
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
@@ -90,9 +137,16 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Read-only-rootfs friendly: all writable state under /tmp, and git operates on
 # the workspace regardless of the (possibly pod-overridden) uid.
-ENV HOME=/tmp \
+# LANG: the BEAM falls back to latin1 filename encoding without a UTF-8
+# locale, which breaks Elixir apps handling unicode (hexpm images set this).
+ENV LANG=C.UTF-8 \
+    HOME=/tmp \
     npm_config_cache=/tmp/.npm \
     PIP_CACHE_DIR=/tmp/.pip \
+    HEX_HOME=/tmp/.hex \
+    XDG_CACHE_HOME=/tmp/.cache \
+    XDG_CONFIG_HOME=/tmp/.config \
+    XDG_DATA_HOME=/tmp/.local/share \
     GOCACHE=/tmp/.gocache \
     GOMODCACHE=/tmp/.gomodcache \
     GOPATH=/tmp/go
