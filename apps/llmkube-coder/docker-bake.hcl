@@ -38,8 +38,10 @@ target "image-local" {
 
 target "image-all" {
   inherits = ["image"]
+  // amd64 only: Godot ships a linux x86_64 headless binary and the fleet
+  // nodes are amd64. The old arm64 target was a carryover from the containers
+  // migration; nothing in the fleet pulls it.
   platforms = [
-    "linux/amd64",
-    "linux/arm64"
+    "linux/amd64"
   ]
 }
