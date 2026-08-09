@@ -131,7 +131,7 @@ The following `# zizmor: ignore[...]` suppressions are intentional and reviewed:
 
 ## Container Test Patterns
 
-All five container test files (`apps/llmkube-coder/container_test.go`, `apps/llmkube-coder-go/container_test.go`, `apps/llmkube-coder-node/container_test.go`, `apps/llmkube-coder-python/container_test.go`, `apps/godot-gate/container_test.go`) resolve the image under test through `testhelpers.GetTestImage()`, which reads the `$TEST_IMAGE` environment variable first and falls back to a hardcoded default tag when the variable is unset.
+All container test files (e.g. `apps/llmkube-coder/container_test.go`, `apps/godot-gate/container_test.go`) resolve the image under test through `testhelpers.GetTestImage()`, which reads the `$TEST_IMAGE` environment variable first and falls back to a hardcoded default tag when the variable is unset.
 
 - **CI** sets `TEST_IMAGE` to the freshly built image reference (digest or `:rolling` tag) before invoking `go test`. This is the value actually exercised in CI.
 - **Local development** can set `TEST_IMAGE` to test a specific image, or leave it unset to rely on the hardcoded fallback in each test file.
@@ -140,7 +140,7 @@ All five container test files (`apps/llmkube-coder/container_test.go`, `apps/llm
 Example call site:
 
 ```go
-image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder-go:rolling")
+image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
 ```
 
 ## Known Gaps & Technical Debt
