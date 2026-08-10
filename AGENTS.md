@@ -147,3 +147,21 @@ image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
 
 - **No automated integration tests**: The CI pipeline only runs `docker buildx bake` for syntax validation. There are no end-to-end tests that start containers and verify LLM endpoints respond correctly.
 - **VERSION defaults in docker-bake.hcl are intentionally stale**: Renovate does not modify HCL default values — it only updates the VERSION ARG at build time (via `-set` or environment variables). The `default = "0.9.6"` value in each `apps/llmkube-coder*/docker-bake.hcl` file will never be auto-updated by Renovate. Always pass `VERSION` explicitly when running `docker buildx bake image-local`. See the comments in each bake file for details.
+
+## Filing issues for the autonomous loop
+
+Issues here are picked up by an autonomous coding loop (dispatch → foreman), and two
+parts of the body feed deterministic reviewer rails. Agents filing issues in this repo
+must include both.
+
+**1. State the ask in one imperative sentence.** The reviewer quotes it verbatim to
+prove it actually read the issue. If it can only paraphrase, its GO is demoted to NO-GO
+unless the rail below vouches — costing a revision cycle and an escalation review.
+
+**2. Name the concrete file paths the fix is expected to touch** (backticks are fine).
+The scope-overlap rail vouches for a diff that touches a named file, and that vouch is
+what survives a paraphrased ask.
+
+Name only paths you are confident about. An issue that names files the diff does *not*
+touch is read as scope drift and also gets the change rejected — so when unsure, name
+none rather than guessing.
