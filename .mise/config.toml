@@ -15,13 +15,13 @@ zizmor = "1.29.0"
 
 [tasks.local-build]
 description = "Build and test an app locally"
-dir = "{{config_root}}/.cache"
+dir = "{{config_root}}"
 usage = '''
 arg "<app>"
 '''
 run = '''
-docker buildx bake --no-cache --metadata-file docker-bake.json --set=*.output=type=docker --load
-TEST_IMAGE="$(jq -r '.\"image-local\".\"image.name\" | sub(\"^docker.io/library/\"; \"\")' docker-bake.json)" go test -v {{config_root}}/apps/"$1"/...
+docker buildx bake -f "{{config_root}}/apps/$usage_app/docker-bake.hcl" --set="*.context={{config_root}}/apps/$usage_app" --no-cache --metadata-file docker-bake.json --set=*.output=type=docker --load image-local
+TEST_IMAGE="$(jq -r '."image-local"."image.name" | sub("^docker.io/library/"; "")' docker-bake.json)" go test -v {{config_root}}/apps/"$usage_app"/...
 '''
 
 [tasks.remote-build]
