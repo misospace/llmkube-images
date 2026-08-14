@@ -30,7 +30,7 @@ usage = '''
 arg "<app>"
 arg "[release]" help="release flag (default: false)"
 '''
-run = 'gh workflow run release.yaml -f app="$1" -f release="${2:-false}"'
+run = 'gh workflow run release.yaml -f app="$usage_app" -f release="${usage_release:-false}"'
 
 [tasks.generate-label-config]
 hide = true
