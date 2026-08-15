@@ -23,7 +23,7 @@ RUN mkdir -p /out /tmp/vresolve \
     && cp "$(find "$(go env GOPATH)/bin" -name foreman-agent -type f | head -1)" /out/foreman-agent \
     && test -x /out/foreman-agent
 
-# Node source stage: the official Node 22 image on the same Debian base as the
+# Node source stage: the official Node 24 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
 FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS node
 
@@ -100,7 +100,7 @@ RUN ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl \
     && chmod -R a+rX /opt/mix \
     && elixir --version
 
-# Node 22 + npm from the official image.
+# Node 24 + npm from the official image.
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
