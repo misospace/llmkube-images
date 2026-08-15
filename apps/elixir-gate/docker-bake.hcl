@@ -6,7 +6,7 @@ variable "APP" {
 
 variable "VERSION" {
   // renovate: datasource=docker depName=hexpm/elixir
-  default = "1.18.4-erlang-27.3.4.16-ubuntu-resolute-20260724.1"
+  default = "1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1"
 }
 
 variable "SOURCE" {
