@@ -32,12 +32,25 @@ FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a
 # a mismatch between them ships silently and the tag lies about what is inside,
 # which is what #178 was. Assert they agree at build time instead. ARG is
 # re-declared because the global one is not in scope inside a stage.
+# Both components of the tag are checked. Elixir comes from `elixir --version`;
+# OTP comes from the releases/*/OTP_VERSION file rather than
+# erlang:system_info(otp_release), because the latter reports only the major
+# ("29") and would not catch a 29.0.5 -> 29.0.6 drift. An OTP-less VERSION
+# skips that half rather than failing.
 ARG VERSION
 RUN set -eu; \
-    want="${VERSION%%-*}"; \
-    got="$(elixir --version | sed -n 's/^Elixir \([0-9.]*\).*/\1/p')"; \
-    if [ "$want" != "$got" ]; then \
-        echo "elixir-gate: VERSION claims Elixir ${want} but the pinned digest ships ${got}." >&2; \
+    want_elixir="${VERSION%%-*}"; \
+    got_elixir="$(elixir --version | sed -n 's/^Elixir \([0-9.]*\).*/\1/p')"; \
+    want_otp="$(printf '%s' "$VERSION" | sed -n 's/.*erlang-\([0-9][0-9.]*\).*/\1/p')"; \
+    got_otp="$(cat /usr/local/lib/erlang/releases/*/OTP_VERSION)"; \
+    bad=""; \
+    [ "$want_elixir" = "$got_elixir" ] || bad="Elixir: tag says ${want_elixir}, image ships ${got_elixir}"; \
+    if [ -n "$want_otp" ] && [ "$want_otp" != "$got_otp" ]; then \
+        bad="${bad:+${bad}\n}OTP: tag says ${want_otp}, image ships ${got_otp}"; \
+    fi; \
+    if [ -n "$bad" ]; then \
+        echo "elixir-gate: VERSION disagrees with the pinned digest." >&2; \
+        printf '%b\n' "$bad" >&2; \
         echo "Update the FROM digest and VERSION together, or the published tag will misreport the image." >&2; \
         exit 1; \
     fi
