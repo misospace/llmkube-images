@@ -4,8 +4,20 @@
 # Everything the gate needs is baked at build time: the gate runs as a non-root
 # uid with no network guarantees and cannot apt-install, so a stock elixir image
 # plus runtime installs is not viable.
+# Declared before any FROM so it stays a global ARG usable by the elixir stage
+# below — an ARG after the first FROM is scoped to that stage only.
 # renovate: datasource=docker depName=hexpm/elixir
 ARG VERSION=1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1
+
+# Node source stage: pinchflat's `mix check` includes a prettier_formatting
+# tool (`yarn run lint:check`, see its tooling/.check.exs), so the gate needs a
+# JS toolchain to reach parity with the repo's CI. Copied from the official
+# image rather than apt-installed so the version is pinned. Note this is a
+# Debian-built binary landing on the Ubuntu base below — that direction works
+# because the target's glibc is newer, and the version check after the copy
+# fails the build if it ever stops holding.
+FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS node
+
 FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a2ad0a59741cd870adfdc
 
 LABEL org.opencontainers.image.title="elixir-gate" \
@@ -22,6 +34,19 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential ca-certificates curl git unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Node + Yarn for `mix check`'s prettier_formatting tool. Everything is made
+# world-readable for the same reason MIX_HOME is: the gate's uid is not known
+# at build time, so anything only root can read is invisible to the process
+# that runs the check. The version calls are a build-time smoke test of the
+# Debian-binary-on-Ubuntu copy above.
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && npm install -g yarn \
+    && chmod -R a+rX /usr/local/lib/node_modules \
+    && node --version && npm --version && yarn --version
 
 # Hex and rebar archives go into a world-READABLE shared MIX_HOME rather than
 # into $HOME. The gate's uid is not known at build time and $HOME is a scratch
