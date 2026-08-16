@@ -6,7 +6,14 @@
 # plus runtime installs is not viable.
 # Declared before any FROM so it stays a global ARG usable by the elixir stage
 # below — an ARG after the first FROM is scoped to that stage only.
-# renovate: datasource=docker depName=hexpm/elixir
+#
+# Deliberately NOT Renovate-managed. docker-bake.hcl's VERSION is the single
+# managed declaration, because that is what .github/actions/app-options reads
+# (via `buildx bake --list`) to tag the published image, and bake passes it in
+# as a build arg that overrides this default. A second marker here is what let
+# the two drift apart in #156: Renovate matched a different "latest" for each
+# and the tag ended up describing an image the digest did not ship (#178).
+# This default exists only so a bare `docker build` works locally.
 ARG VERSION=1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1
 
 # Node source stage: pinchflat's `mix check` includes a prettier_formatting
@@ -19,6 +26,34 @@ ARG VERSION=1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1
 FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS node
 
 FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a2ad0a59741cd870adfdc
+
+# The tag and the digest in the FROM above are independent inputs: the digest
+# decides the contents, VERSION decides what the published image is called. So
+# a mismatch between them ships silently and the tag lies about what is inside,
+# which is what #178 was. Assert they agree at build time instead. ARG is
+# re-declared because the global one is not in scope inside a stage.
+# Both components of the tag are checked. Elixir comes from `elixir --version`;
+# OTP comes from the releases/*/OTP_VERSION file rather than
+# erlang:system_info(otp_release), because the latter reports only the major
+# ("29") and would not catch a 29.0.5 -> 29.0.6 drift. An OTP-less VERSION
+# skips that half rather than failing.
+ARG VERSION
+RUN set -eu; \
+    want_elixir="${VERSION%%-*}"; \
+    got_elixir="$(elixir --version | sed -n 's/^Elixir \([0-9.]*\).*/\1/p')"; \
+    want_otp="$(printf '%s' "$VERSION" | sed -n 's/.*erlang-\([0-9][0-9.]*\).*/\1/p')"; \
+    got_otp="$(cat /usr/local/lib/erlang/releases/*/OTP_VERSION)"; \
+    bad=""; \
+    [ "$want_elixir" = "$got_elixir" ] || bad="Elixir: tag says ${want_elixir}, image ships ${got_elixir}"; \
+    if [ -n "$want_otp" ] && [ "$want_otp" != "$got_otp" ]; then \
+        bad="${bad:+${bad}\n}OTP: tag says ${want_otp}, image ships ${got_otp}"; \
+    fi; \
+    if [ -n "$bad" ]; then \
+        echo "elixir-gate: VERSION disagrees with the pinned digest." >&2; \
+        printf '%b\n' "$bad" >&2; \
+        echo "Update the FROM digest and VERSION together, or the published tag will misreport the image." >&2; \
+        exit 1; \
+    fi
 
 LABEL org.opencontainers.image.title="elixir-gate" \
       org.opencontainers.image.description="Elixir/OTP toolchain for foreman verify gates (rootless, read-only-rootfs safe)" \

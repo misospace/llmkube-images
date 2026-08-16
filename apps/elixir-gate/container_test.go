@@ -9,7 +9,7 @@ import (
 func Test(t *testing.T) {
 	// Default tag is the fallback used when $TEST_IMAGE is unset; CI sets
 	// $TEST_IMAGE to the freshly built image. See AGENTS.md → Container Test Patterns.
-	image := testhelpers.GetTestImage("ghcr.io/misospace/elixir-gate:1.18.4-erlang-27.0.1-debian-bookworm-20260803")
+	image := testhelpers.GetTestImage("ghcr.io/misospace/elixir-gate:1.20.3")
 
 	// The toolchain must run under the strictest sandbox — read-only rootfs with
 	// only /tmp writable — since all mix/hex/erlang state is redirected there.
