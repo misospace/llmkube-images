@@ -8,7 +8,7 @@ You review pull requests for a rootless, semantically versioned, multi-architect
 - Individual container images under `apps/`
 - Test helpers in `testhelpers/`
 - A `docker-bake.hcl` build orchestration file
-- Go 1.26.5 module with `testcontainers-go` for integration testing
+- Go module with `testcontainers-go` for integration testing
 
 ## Review Standards
 
@@ -72,6 +72,12 @@ Bad patterns to flag:
 - Base images: pin to a specific tag or digest, not `:latest`
 - Build tools: use `ARG VERSION` and pass it at build time
 - Renovate-managed dependencies: `@version` format in comments
+- `docker-bake.hcl` `VERSION` defaults are the single managed declaration for an app.
+  Renovate updates them in place via the "Process Annotations in Docker Bake" custom
+  manager in `.renovaterc.json5`, keyed off the `// renovate:` comment above each default.
+  `.github/actions/app-options` reads the same value back with `docker buildx bake --list`
+  to tag the published image, so the default is what the release is named after. Do not
+  treat it as a placeholder or edit it to something the digest below it does not ship.
 - Third-party binary downloads: verify checksums when possible
 
 ### Security
@@ -146,7 +152,6 @@ image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
 ## Known Gaps & Technical Debt
 
 - **No automated integration tests**: The CI pipeline only runs `docker buildx bake` for syntax validation. There are no end-to-end tests that start containers and verify LLM endpoints respond correctly.
-- **VERSION defaults in docker-bake.hcl are intentionally stale**: Renovate does not modify HCL default values — it only updates the VERSION ARG at build time (via `-set` or environment variables). The `default = "0.9.6"` value in each `apps/llmkube-coder*/docker-bake.hcl` file will never be auto-updated by Renovate. Always pass `VERSION` explicitly when running `docker buildx bake image-local`. See the comments in each bake file for details.
 
 ## Filing issues for the autonomous loop
 
