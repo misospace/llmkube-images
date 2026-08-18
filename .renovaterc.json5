@@ -25,6 +25,13 @@
   ],
   packageRules: [
     {
+      description: "The elixir-gate Dockerfile is not managed independently",
+      matchFileNames: ["apps/elixir-gate/Dockerfile"],
+      matchManagers: ["dockerfile"],
+      matchPackageNames: ["hexpm/elixir"],
+      enabled: false,
+    },
+    {
       description: ["Release rules for app image updates"],
       addLabels: ["app/{{parentDir}}"],
       additionalBranchPrefix: "{{parentDir}}-",
