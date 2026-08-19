@@ -59,6 +59,61 @@ header=$(head -15 "$CHECK_SCRIPT")
 assert_output_contains "Header mentions GITHUB_TOKEN" "GITHUB_TOKEN" "$header"
 assert_output_contains "Header mentions rate limit" "rate limit" "$header"
 
+# Test 4: docker-registry datasources are skipped (no GitHub API call), github-releases still checked.
+# Regression for issue #192: elixir-gate's `datasource=docker depName=hexpm/elixir` made the
+# script curl api.github.com/repos/hexpm%2Felixir, get a 404, and fail the whole gate.
+echo "--- Test: docker-registry datasource is skipped ---"
+tmp_repo=$(mktemp -d)
+trap 'rm -rf "$tmp_repo"' EXIT
+mkdir -p "$tmp_repo/scripts" "$tmp_repo/apps/elixir-gate" "$tmp_repo/apps/ollama"
+cp "$CHECK_SCRIPT" "$tmp_repo/scripts/check-version-freshness.sh"
+
+cat > "$tmp_repo/apps/elixir-gate/docker-bake.hcl" <<'EOF'
+variable "VERSION" {
+  type    = string
+  default = "1.18.4"
+  // renovate: datasource=docker depName=hexpm/elixir
+}
+EOF
+
+cat > "$tmp_repo/apps/ollama/docker-bake.hcl" <<'EOF'
+variable "VERSION" {
+  type    = string
+  default = "0.9.0"
+  // renovate: datasource=github-releases depName=ollama/ollama
+}
+EOF
+
+# Stub curl so the test is hermetic: report HTTP 200 with a fake latest release.
+mkdir -p "$tmp_repo/bin"
+cat > "$tmp_repo/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+# Minimal curl stub honoring -o <file> and -w "%{http_code}":
+# writes the JSON body to the -o file and prints the status code to stdout.
+out_file=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) out_file="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+if [ -n "$out_file" ]; then
+  printf '%s' '{"tag_name":"v0.9.0"}' > "$out_file"
+fi
+printf '%s' '200'
+EOF
+chmod +x "$tmp_repo/bin/curl"
+
+set +e
+output=$(PATH="$tmp_repo/bin:$PATH" GITHUB_TOKEN="dummy" bash "$tmp_repo/scripts/check-version-freshness.sh" 2>&1)
+exit_code=$?
+set -e
+
+assert_exit_code "docker-sourced dep does not fail the gate" "0" "$exit_code"
+assert_output_contains "docker-sourced dep is skipped" "SKIP: elixir-gate" "$output"
+assert_output_contains "github-releases dep is still checked" "OK: ollama" "$output"
+assert_output_contains "summary counts only checked apps" "checked 1 apps" "$output"
+
 # Summary
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
