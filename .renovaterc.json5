@@ -57,5 +57,15 @@
       commitMessageTopic: "{{groupName}}",
       semanticCommitScope: "llmkube-coders",
     },
+    {
+      description: ["Auto-merge Go module dependency updates once CI is green"],
+      matchFileNames: ["**/go.mod"],
+      automerge: true,
+      automergeType: "pr",
+      ignoreTests: false,
+      addLabels: ["type/deps"],
+      semanticCommitType: "fix",
+      semanticCommitScope: "deps",
+    },
   ],
 }
