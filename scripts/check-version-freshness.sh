@@ -34,6 +34,7 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
   # Pattern: "// renovate: datasource=github-releases depName=<owner/repo>"
   dep_name=""
   current_version=""
+  renovate_line=""
   in_version_var=0
 
   while IFS= read -r line; do
@@ -47,6 +48,7 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
     if [ "$in_version_var" -eq 1 ]; then
       # Check for renovate comment with depName
       if echo "$line" | grep -qE '//\s*renovate:.*depName='; then
+        renovate_line="$line"
         dep_name="$(echo "$line" | sed -n 's/.*depName=\([^ ]*\).*/\1/p')"
       fi
 
@@ -68,6 +70,19 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
     continue
   fi
 
+  # Extract the datasource from the renovate annotation (defaults to github-releases).
+  # Only GitHub-releases datasources are in scope for this check: the script queries
+  # api.github.com/repos/<depName>/releases/latest, which 404s for non-GitHub deps
+  # such as docker-registry images (e.g. hexpm/elixir).
+  datasource="$(echo "$renovate_line" | sed -n 's/.*datasource=\([^ ]*\).*/\1/p')"
+  if [ -z "$datasource" ]; then
+    datasource="github-releases"
+  fi
+  if [ "$datasource" != "github-releases" ] && [ "$datasource" != "github" ]; then
+    echo "SKIP: $app_name — $dep_name (datasource='$datasource' is not a GitHub repo)"
+    continue
+  fi
+
   TOTAL=$((TOTAL + 1))
 
   # Fetch latest release tag from GitHub API
@@ -77,24 +92,19 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
   retry_delay=5
   response=""
   http_code=""
+  body_file="$(mktemp)"
   for attempt in $(seq 1 $max_retries); do
-    read -r http_code body < <(curl -sL -w "%{http_code}" \
+    # Write the JSON body to a file and the status code to stdout so the two
+    # are never mixed: `read` on "body<code>" breaks because the body has no
+    # spaces, so the code never lands in its own variable.
+    http_code="$(curl -sL -o "$body_file" -w "%{http_code}" \
       -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/repos/$dep_name/releases/latest" 2>/dev/null)
-    # On rate limit (429), check Retry-After header and wait before retrying.
+      "https://api.github.com/repos/$dep_name/releases/latest" 2>/dev/null)"
+    # On rate limit (429), wait before retrying.
     if [ "$http_code" = "429" ]; then
-      retry_after="$(curl -sL -D - \
-        -H "Authorization: Bearer $GITHUB_TOKEN" \
-        -H "Accept: application/vnd.github.v3+json" \
-        "https://api.github.com/repos/$dep_name/releases/latest" 2>/dev/null | grep -i '^Retry-After:' | awk '{print $2}' | tr -d '\r')"
-      if [ -n "$retry_after" ] && [ "$retry_after" -gt 0 ] 2>/dev/null; then
-        echo "WARN: Rate limited for $dep_name. Waiting ${retry_after}s before retry (attempt $attempt/$max_retries)..."
-        sleep "$retry_after"
-      else
-        echo "WARN: Rate limited for $dep_name. Waiting ${retry_delay}s before retry (attempt $attempt/$max_retries)..."
-        sleep "$retry_delay"
-      fi
+      echo "WARN: Rate limited for $dep_name. Waiting ${retry_delay}s before retry (attempt $attempt/$max_retries)..."
+      sleep "$retry_delay"
       continue
     fi
     # On other 4xx/5xx errors, don't retry — fail immediately.
@@ -103,14 +113,20 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
       echo "Check that GITHUB_TOKEN is valid and has appropriate permissions."
       exit 1
     fi
+    if [ "$http_code" = "404" ]; then
+      echo "ERROR: GitHub API returned 404 (not found) for $dep_name."
+      echo "Check that the depName in the renovate annotation is a valid GitHub repo."
+      exit 1
+    fi
     if [ "$http_code" -ge 500 ] 2>/dev/null; then
       echo "WARN: GitHub API returned HTTP $http_code for $dep_name (attempt $attempt/$max_retries)."
       sleep "$retry_delay"
       continue
     fi
-    response="$body"
+    response="$(cat "$body_file")"
     break
   done
+  rm -f "$body_file"
 
   if [ -z "$response" ]; then
     echo "ERROR: Failed to fetch latest release for $dep_name after $max_retries attempts."
