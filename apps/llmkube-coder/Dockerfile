@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python/Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27-bookworm@sha256:d22fb682b72b6ebf58365871c437cf75794131831a6b8e6f6ebc5302c67c1cad AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -35,7 +35,7 @@ RUN npm install -g npm@latest
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the
 # agent). Same digest as the build stage; the manifest resolves per-arch.
-FROM golang:1.26-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS goruntime
+FROM golang:1.27-bookworm@sha256:d22fb682b72b6ebf58365871c437cf75794131831a6b8e6f6ebc5302c67c1cad AS goruntime
 
 # Elixir/OTP source stage: same Debian base as the runtime, so the copied
 # trees are ABI-compatible. Erlang lives in /usr/local/lib/erlang and Elixir in
