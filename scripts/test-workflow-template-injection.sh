@@ -43,6 +43,7 @@ for file in "${WORKFLOWS[@]}"; do
   # 2. The body of every `run:` block must not contain a direct `${{ }}`
   #    template expression. We do this by extracting the lines that follow
   #    a `run:` key (preserving relative indentation) and grepping them.
+  # shellcheck disable=SC2016  # the pattern is a literal "${{" grep regex, not a shell expression
   awk -v file="$file" '
     /^[ \t]*run: / {
       collecting = 1
