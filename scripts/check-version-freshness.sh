@@ -143,8 +143,8 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
   latest_version="$(echo "$response" | grep tag_name | head -1 | sed -n 's/.*"tag_name"\s*:\s*"\([^"]*\)".*/\1/p')"
 
   # Strip leading 'v' if present for comparison
-  latest_clean="$(echo "$latest_version" | sed 's/^v//')"
-  current_clean="$(echo "$current_version" | sed 's/^v//')"
+  latest_clean="${latest_version#v}"
+  current_clean="${current_version#v}"
 
   if [ -z "$latest_clean" ]; then
     echo "WARN: Could not fetch latest release for $dep_name (app: $app_name)"
