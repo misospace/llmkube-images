@@ -151,7 +151,7 @@ image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
 
 ## Known Gaps & Technical Debt
 
-- **No automated integration tests**: The CI pipeline only runs `docker buildx bake` for syntax validation. There are no end-to-end tests that start containers and verify LLM endpoints respond correctly.
+- **Integration test coverage is per-app and CI-driven**: Each app ships a `container_test.go` (e.g. `apps/llmkube-coder/container_test.go`, `apps/godot-gate/container_test.go`, `apps/elixir-gate/container_test.go`) that starts real containers via `testcontainers-go` using the `testhelpers` package (`TestHTTPEndpoint`, `TestCommandSucceeds`, `TestFileExists`). The `.github/actions/app-tests` composite action runs `go test -v ./apps/${APP}/...` with `TEST_IMAGE` set to the freshly built image, and the `test` job in `.github/workflows/app-builder.yaml` invokes it after the build. New apps must add a `container_test.go` so they are covered by the same pipeline.
 
 ## Filing issues for the autonomous loop
 
