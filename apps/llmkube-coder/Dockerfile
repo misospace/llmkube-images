@@ -25,7 +25,7 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 24 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS node
+FROM node:24-bookworm-slim@sha256:ccd0612136f105d59d7266585b0bff88016e3da94c8ebfc8ad1154b529f59e7b AS node
 
 # Upgrade npm to latest to patch CVEs in vendored deps (ip-address, brace-expansion, tar).
 # See: https://github.com/misospace/llmkube-images/issues/126
