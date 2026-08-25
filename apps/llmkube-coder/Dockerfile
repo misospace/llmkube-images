@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python/Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.27-bookworm@sha256:a9278c7936a41f7d33dae94784df33442e71fb4d6943a08100cf1898845c5bea AS build
+FROM --platform=$BUILDPLATFORM golang:1.27-bookworm@sha256:ded31c68586d2e49e760acc2e65a884b23d032e9bbbed0ae0c55abd3fcaf4452 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -35,7 +35,7 @@ RUN npm install -g npm@latest
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the
 # agent). Same digest as the build stage; the manifest resolves per-arch.
-FROM golang:1.27-bookworm@sha256:a9278c7936a41f7d33dae94784df33442e71fb4d6943a08100cf1898845c5bea AS goruntime
+FROM golang:1.27-bookworm@sha256:ded31c68586d2e49e760acc2e65a884b23d032e9bbbed0ae0c55abd3fcaf4452 AS goruntime
 
 # Elixir/OTP source stage: same Debian base as the runtime, so the copied
 # trees are ABI-compatible. Erlang lives in /usr/local/lib/erlang and Elixir in
@@ -124,7 +124,7 @@ RUN pip install --no-cache-dir \
 # renovate: datasource=npm depName=eslint
 ARG ESLINT_VERSION=10.9.1
 # renovate: datasource=npm depName=prisma
-ARG PRISMA_VERSION=7.9.1
+ARG PRISMA_VERSION=7.10.0
 # renovate: datasource=npm depName=typescript
 ARG TYPESCRIPT_VERSION=7.0.2
 RUN npm install -g --no-fund --no-audit \
