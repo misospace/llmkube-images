@@ -4,7 +4,7 @@
 # CGO is disabled, so the binary runs on the Python/Node runtime below with no
 # Go toolchain present. Pinned to $BUILDPLATFORM + GOOS/GOARCH so the compiler
 # always runs natively (arm64 never pays QEMU's interpreted-compile cost).
-FROM --platform=$BUILDPLATFORM golang:1.27-bookworm@sha256:484ef6066fa69acb059fdfeda7ba2b8f7391f2ef6abc6f9b8411e669ebd56466 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27-bookworm@sha256:4cdeb0986daca9cfb8b0485f762778a149206025d80ae4212fde9a8dacedca55 AS build
 ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
@@ -25,7 +25,7 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 24 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-bookworm-slim@sha256:ccd0612136f105d59d7266585b0bff88016e3da94c8ebfc8ad1154b529f59e7b AS node
+FROM node:24-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS node
 
 # Upgrade npm to latest to patch CVEs in vendored deps (ip-address, brace-expansion, tar).
 # See: https://github.com/misospace/llmkube-images/issues/126
@@ -35,7 +35,7 @@ RUN npm install -g npm@latest
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the
 # agent). Same digest as the build stage; the manifest resolves per-arch.
-FROM golang:1.27-bookworm@sha256:484ef6066fa69acb059fdfeda7ba2b8f7391f2ef6abc6f9b8411e669ebd56466 AS goruntime
+FROM golang:1.27-bookworm@sha256:4cdeb0986daca9cfb8b0485f762778a149206025d80ae4212fde9a8dacedca55 AS goruntime
 
 # Elixir/OTP source stage: same Debian base as the runtime, so the copied
 # trees are ABI-compatible. Erlang lives in /usr/local/lib/erlang and Elixir in
@@ -47,7 +47,7 @@ FROM hexpm/elixir:1.20.3-erlang-27.0.1-debian-bookworm-20260803@sha256:ceaeabd3c
 # run time, so every fleet runtime is baked here instead (the modern
 # replacement for the old root-and-apt-get pods). amd64 only: Godot upstream
 # ships a linux x86_64 headless binary and the fleet nodes are amd64.
-FROM python:3.14-slim-bookworm@sha256:23c59390fc717bf09f9336908199a0ae75d9c4264bf296123f94ad772fea3b52
+FROM python:3.14-slim-bookworm@sha256:8e729c1805fb85b93e435f6c0ba67069e1b2cfd1ce4f72a9481f6a737434b46b
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go + Godot + Elixir self-gate toolchain" \
