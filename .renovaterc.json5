@@ -43,14 +43,9 @@
     },
     {
       description: [
-        "LLMKube coder family — one grouped PR per LLMKube release (not four)",
+        "LLMKube coder image — one grouped PR per LLMKube release",
       ],
-      matchFileNames: [
-        "apps/llmkube-coder/**",
-        "apps/llmkube-coder-node/**",
-        "apps/llmkube-coder-python/**",
-        "apps/llmkube-coder-go/**",
-      ],
+      matchFileNames: ["apps/llmkube-coder/**"],
       groupName: "llmkube-coders",
       additionalBranchPrefix: "",
       addLabels: ["app/llmkube-coders"],
