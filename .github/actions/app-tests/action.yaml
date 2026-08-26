@@ -31,6 +31,13 @@ runs:
           ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
 
+    - name: Require Executable Integration Test
+      shell: bash
+      env:
+        APP: ${{ inputs.app }}
+      run: |-
+        bash scripts/check-app-test.sh "$APP"
+
     - name: Run Tests
       shell: bash
       env:
