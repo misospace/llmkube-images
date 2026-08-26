@@ -66,9 +66,9 @@ RUN apt-get update \
 # time) and verified against the release's own SHA512-SUMS.txt — a stale digest
 # fails the build loudly rather than installing an unverified engine.
 # renovate: datasource=github-releases depName=godotengine/godot
-ARG GODOT_VERSION=4.7.1
+ARG GODOT_VERSION=4.7.2
 ARG GODOT_STATUS=stable
-ARG GODOT_SHA512=4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
+ARG GODOT_SHA512=9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip \
     && curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip" -o /tmp/godot.zip \

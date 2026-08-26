@@ -9,7 +9,7 @@ import (
 func Test(t *testing.T) {
 	// Default tag is the fallback used when $TEST_IMAGE is unset; CI sets
 	// $TEST_IMAGE to the freshly built image. See AGENTS.md → Container Test Patterns.
-	image := testhelpers.GetTestImage("ghcr.io/misospace/godot-gate:4.7.1")
+	image := testhelpers.GetTestImage("ghcr.io/misospace/godot-gate:4.7.2")
 
 	// Godot headless must run even under the strictest sandbox — read-only rootfs
 	// with only /tmp writable — since all its state is redirected to /tmp. The

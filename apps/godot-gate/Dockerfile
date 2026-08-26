@@ -5,10 +5,10 @@
 # which is exactly why the previous apt-based gate could never run).
 FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171 AS build
 # renovate: datasource=github-releases depName=godotengine/godot
-ARG VERSION=4.7.1
+ARG VERSION=4.7.2
 ARG GODOT_STATUS=stable
 # renovate: datasource=github-release depName=godotengine/godot-builds
-ARG GODOT_SHA512=4ccdab7a48eeccbe8819a2fc1f6262f8d72065d98601bcb3743fcbd7ebd39f373758a788ee3293a05ec5b2c48538266c437404312e372225cd2df273945a2de9
+ARG GODOT_SHA512=9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
@@ -18,11 +18,11 @@ RUN apt-get update \
     && mv "/tmp/godot/Godot_v${VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot \
     && chmod 0755 /usr/local/bin/godot
 
-# Runtime: Godot 4.7.1 headless gate for foreman verify gates (windowstead et al).
+# Runtime: Godot 4.7.2 headless gate for foreman verify gates (windowstead et al).
 # amd64 only — Godot upstream ships a linux x86_64 headless binary and the fleet
 # nodes are amd64 (the bake `image-all` pins linux/amd64).
 FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171
-ARG VERSION=4.7.1
+ARG VERSION=4.7.2
 
 LABEL org.opencontainers.image.title="godot-gate" \
       org.opencontainers.image.description="Godot ${VERSION} headless runtime for foreman verify gates (read-only-rootfs safe)" \
