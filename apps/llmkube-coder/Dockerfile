@@ -84,21 +84,47 @@ RUN apt-get update \
 # $HOME is a scratch dir, so a HOME-local install would be invisible to the
 # process that runs mix. HEX_HOME (hex's package CACHE, written during mix
 # deps.get) points at /tmp below instead — putting it beside the read-only
-# archives breaks the first real fetch.
+# archives breaks the first real fetch. Versions AND sha512 checksums are
+# pinned so a build cannot silently pick up a different executable than the
+# one recorded here. The build fails (set -eux + sha512sum -c) on any drift,
+# including a compromised or typo'd upstream.
+# Checksums are the published values from https://builds.hex.pm/installs/hex.csv
+# and rebar.csv. The install and OTP segments select the compatible artifact for
+# the pinned Elixir/OTP base image; keep them synchronized when updating a tool.
+# renovate: datasource=github-releases depName=hexpm/hex
+ARG HEX_VERSION=2.5.1
+ARG HEX_SHA512=ad624850969eaeb8a994bfc9c199554269648d23598da4231ab5e1a7c81cc58f5356425022ca8f20d3c3efc4e4625ac32d608b58fa1c6159fe6a3e2ed224c2fa
+ARG HEX_INSTALLS=1.20.0
+ARG HEX_OTP=27
+# renovate: datasource=github-releases depName=erlang/rebar3
+ARG REBAR_VERSION=3.24.0
+ARG REBAR_SHA512=158473850233093e6a1417e9779919cb6768402ea967db510d926bc5e74361377e9176014e827c622098e0dbf96b505677addc4bd4817ce2b9b4f4bc8121768b
+ARG REBAR_INSTALLS=1.18.3
+ARG REBAR_OTP=27
 COPY --from=elixir /usr/local/lib/erlang /usr/local/lib/erlang
 COPY --from=elixir /usr/local/lib/elixir /usr/local/lib/elixir
 ENV MIX_HOME=/opt/mix
-RUN ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl \
-    && ln -sf /usr/local/lib/erlang/bin/erlc /usr/local/bin/erlc \
-    && ln -sf /usr/local/lib/elixir/bin/elixir /usr/local/bin/elixir \
-    && ln -sf /usr/local/lib/elixir/bin/elixirc /usr/local/bin/elixirc \
-    && ln -sf /usr/local/lib/elixir/bin/mix /usr/local/bin/mix \
-    && ln -sf /usr/local/lib/elixir/bin/iex /usr/local/bin/iex \
-    && mkdir -p /opt/mix \
-    && mix local.hex --force \
-    && mix local.rebar --force \
-    && chmod -R a+rX /opt/mix \
-    && elixir --version
+RUN set -eux; \
+    ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl; \
+    ln -sf /usr/local/lib/erlang/bin/erlc /usr/local/bin/erlc; \
+    ln -sf /usr/local/lib/elixir/bin/elixir /usr/local/bin/elixir; \
+    ln -sf /usr/local/lib/elixir/bin/elixirc /usr/local/bin/elixirc; \
+    ln -sf /usr/local/lib/elixir/bin/mix /usr/local/bin/mix; \
+    ln -sf /usr/local/lib/elixir/bin/iex /usr/local/bin/iex; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl; \
+    mkdir -p /opt/mix/archives; \
+    curl -fsSL -o /opt/mix/archives/hex-${HEX_VERSION}.ez \
+      "https://builds.hex.pm/installs/${HEX_INSTALLS}/hex-${HEX_VERSION}-otp-${HEX_OTP}.ez"; \
+    echo "${HEX_SHA512}  /opt/mix/archives/hex-${HEX_VERSION}.ez" | sha512sum -c -; \
+    curl -fsSL -o /opt/mix/rebar3 \
+      "https://builds.hex.pm/installs/${REBAR_INSTALLS}/rebar3-${REBAR_VERSION}-otp-${REBAR_OTP}"; \
+    echo "${REBAR_SHA512}  /opt/mix/rebar3" | sha512sum -c -; \
+    chmod +x /opt/mix/rebar3; \
+    chmod -R a+rX /opt/mix; \
+    apt-get purge -y --auto-remove curl; \
+    rm -rf /var/lib/apt/lists/*; \
+    elixir --version
 
 # Node 24 + npm from the official image.
 COPY --from=node /usr/local/bin/node /usr/local/bin/node

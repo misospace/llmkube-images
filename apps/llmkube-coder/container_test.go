@@ -24,7 +24,10 @@ func Test(t *testing.T) {
 	// Godot + Elixir: the runtimes that used to need their own images.
 	testhelpers.TestCommandSucceeds(t, image, nil, "godot", "--headless", "--version")
 	testhelpers.TestCommandSucceeds(t, image, nil, "elixir", "--version")
-	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c", "mix hex.info >/dev/null && test -d \"$MIX_HOME\"")
+	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c",
+		`ls "$MIX_HOME"/archives/hex-*.ez >/dev/null 2>&1 && `+
+			`[ -x "$MIX_HOME/rebar3" ] && `+
+			`[ -d "$MIX_HOME" ]`)
 }
 
 // TestElixirProjectCompiles proves mix can create, compile, and test a project
