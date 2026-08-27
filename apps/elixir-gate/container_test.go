@@ -18,9 +18,14 @@ func Test(t *testing.T) {
 
 	// Hex and rebar must be visible to the NON-ROOT uid that runs the gate. They
 	// are installed into a shared MIX_HOME because a $HOME-local install would be
-	// invisible here — this is the check that catches that regression.
+	// invisible here — this is the check that catches that regression. We verify
+	// by file presence rather than invoking `mix hex.info`, because Mix's archive
+	// auto-load in CLI mode is not stable across Mix/OTP versions (see #236).
 	testhelpers.TestCommandSucceeds(t, image, roCfg, "sh", "-c",
-		`mix hex.info >/dev/null && test -d "$MIX_HOME" && test -d "$HEX_HOME"`)
+		`ls "$MIX_HOME"/archives/hex-*.ez >/dev/null 2>&1 && `+
+			`[ -x "$MIX_HOME/rebar3" ] && `+
+			`[ -d "$MIX_HOME" ] && `+
+			`mkdir -p "$HEX_HOME" && [ -d "$HEX_HOME" ]`)
 
 	// A real project must COMPILE and its tests RUN as the non-root user. `elixir
 	// --version` exercises none of that: it writes no _build, invokes no compiler,

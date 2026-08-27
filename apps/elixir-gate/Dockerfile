@@ -86,11 +86,26 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 # Hex and rebar archives go into a world-READABLE shared MIX_HOME rather than
 # into $HOME. The gate's uid is not known at build time and $HOME is a scratch
 # dir, so a HOME-local install would be invisible to the process that runs mix.
+# Versions AND sha512 checksums are pinned so a build cannot silently pick up a
+# different executable than the one recorded here. The build fails (set -eu +
+# sha512sum -c) on any drift, including a compromised or typo'd upstream.
+# renovate: datasource=github-releases depName=hexpm/hex
+ARG HEX_VERSION=2.5.1
+ARG HEX_SHA512=6629f4b4bb2e040326151ebb853aad065e342c65ad3a0f2a2674dcf7164eb4328d6c929513d7230309ad75042024e72bef0e0a51ebff373b4173d2746b1772b7
+# renovate: datasource=github-releases depName=erlang/rebar3
+ARG REBAR_VERSION=3.25.1
+ARG REBAR_SHA512=992fd755b7926fae455e5e07d9d195f4d3e7f181609eed1b9cabfe548624df10d148cd4b59bda40bebb185d3d68f9a9fd68a70b294101c8ad9cf0fadcc683d24
 ENV MIX_HOME=/opt/mix
-RUN mkdir -p /opt/mix \
-    && mix local.hex --force \
-    && mix local.rebar --force \
-    && chmod -R a+rX /opt/mix
+RUN set -eux; \
+    mkdir -p /opt/mix/archives; \
+    curl -fsSL -o /opt/mix/archives/hex-${HEX_VERSION}.ez \
+      "https://builds.hex.pm/installs/1.20.0/hex-${HEX_VERSION}-otp-29.ez"; \
+    echo "${HEX_SHA512}  /opt/mix/archives/hex-${HEX_VERSION}.ez" | sha512sum -c -; \
+    curl -fsSL -o /opt/mix/rebar3 \
+      "https://builds.hex.pm/installs/1.18.4/rebar3-${REBAR_VERSION}-otp-28"; \
+    echo "${REBAR_SHA512}  /opt/mix/rebar3" | sha512sum -c -; \
+    chmod +x /opt/mix/rebar3; \
+    chmod -R a+rX /opt/mix
 
 # Writable state under /tmp so no write lands on a root-owned path: mix builds,
 # hex's cache, and rebar all write during a gate run.
