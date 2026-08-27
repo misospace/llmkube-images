@@ -79,6 +79,16 @@ jobs:
       - name: Version-freshness regression tests
         run: bash scripts/test-check-version-freshness.sh
 
+      - name: App test gate regression tests
+        run: bash scripts/test-check-app-test.sh
+
+      - name: Require executable integration test for every app
+        run: |
+          for app in apps/*/; do
+            app_name="$(basename "$app")"
+            bash scripts/check-app-test.sh "$app_name"
+          done
+
   status:
     if: ${{ !cancelled() }}
     name: Build Success
