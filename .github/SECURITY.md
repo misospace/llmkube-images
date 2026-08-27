@@ -13,11 +13,12 @@ This repository uses [Grype](https://github.com/anchore/grype) via GitHub Action
 
 ### Gating Policy
 
-High and Critical severity findings **fail the scan workflow**. This ensures that:
+High and Critical severity findings **fail both the pre-publish scan and the post-publish scan**. This ensures that:
 
-1. No image with unmitigated High/Critical vulnerabilities is published as `:rolling`.
+1. No image with unmitigated High/Critical vulnerabilities is published as `:rolling` or a semver tag. The pre-publish Grype scan in `.github/workflows/app-builder.yaml` runs against every platform image digest built for the app and is a hard prerequisite of the `merge` job, so a High/Critical finding prevents the multi-platform `:rolling`/semver manifests from being created or pushed.
 2. Findings are immediately visible to maintainers via the failed workflow run.
-3. Open alerts on GitHub Code Scanning are actively triaged and resolved.
+3. The scheduled `.github/workflows/vulnerability-scan.yaml` continues to run daily as defense in depth against newly disclosed vulnerabilities in already-published images.
+4. Open alerts on GitHub Code Scanning are actively triaged and resolved.
 
 ### Acceptable Risk Exceptions
 
