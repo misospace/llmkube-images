@@ -89,19 +89,17 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 # Versions AND sha512 checksums are pinned so a build cannot silently pick up a
 # different executable than the one recorded here. The build fails (set -eu +
 # sha512sum -c) on any drift, including a compromised or typo'd upstream.
-# Checksums are the published values from https://builds.hex.pm/installs/hex.csv
-# and rebar.csv. The install and OTP segments select the compatible artifact for
-# the pinned Elixir/OTP base image; keep them synchronized when updating a tool.
+# Checksums are pinned for the exact artifacts downloaded below. Hex comes
+# from builds.hex.pm; rebar3 comes from its upstream GitHub release asset,
+# because 3.27.0 is not yet available in Hex's installer index.
 # renovate: datasource=github-releases depName=hexpm/hex
 ARG HEX_VERSION=2.5.1
 ARG HEX_SHA512=6629f4b4bb2e040326151ebb853aad065e342c65ad3a0f2a2674dcf7164eb4328d6c929513d7230309ad75042024e72bef0e0a51ebff373b4173d2746b1772b7
 ARG HEX_INSTALLS=1.20.0
 ARG HEX_OTP=29
 # renovate: datasource=github-releases depName=erlang/rebar3
-ARG REBAR_VERSION=3.25.1
-ARG REBAR_SHA512=992fd755b7926fae455e5e07d9d195f4d3e7f181609eed1b9cabfe548624df10d148cd4b59bda40bebb185d3d68f9a9fd68a70b294101c8ad9cf0fadcc683d24
-ARG REBAR_INSTALLS=1.18.4
-ARG REBAR_OTP=28
+ARG REBAR_VERSION=3.27.0
+ARG REBAR_SHA512=0d00494d849fdc521a55142278d1f6ba552954fbd65b80d40df8022f594f05d6c99ed1d731bc263691a04176e11d4c6e126c56ba20dca19c5e42d4ffab2e7e36
 ENV MIX_HOME=/opt/mix
 RUN set -eux; \
     mkdir -p /opt/mix/archives; \
@@ -109,7 +107,7 @@ RUN set -eux; \
       "https://builds.hex.pm/installs/${HEX_INSTALLS}/hex-${HEX_VERSION}-otp-${HEX_OTP}.ez"; \
     echo "${HEX_SHA512}  /opt/mix/archives/hex-${HEX_VERSION}.ez" | sha512sum -c -; \
     curl -fsSL -o /opt/mix/rebar3 \
-      "https://builds.hex.pm/installs/${REBAR_INSTALLS}/rebar3-${REBAR_VERSION}-otp-${REBAR_OTP}"; \
+      "https://github.com/erlang/rebar3/releases/download/${REBAR_VERSION}/rebar3"; \
     echo "${REBAR_SHA512}  /opt/mix/rebar3" | sha512sum -c -; \
     chmod +x /opt/mix/rebar3; \
     chmod -R a+rX /opt/mix
