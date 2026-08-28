@@ -25,7 +25,7 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 24 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS node
+FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS node
 
 # Upgrade npm to latest to patch CVEs in vendored deps (ip-address, brace-expansion, tar).
 # See: https://github.com/misospace/llmkube-images/issues/126
@@ -97,7 +97,7 @@ ARG HEX_SHA512=ad624850969eaeb8a994bfc9c199554269648d23598da4231ab5e1a7c81cc58f5
 ARG HEX_INSTALLS=1.20.0
 ARG HEX_OTP=27
 # renovate: datasource=github-releases depName=erlang/rebar3
-ARG REBAR_VERSION=3.24.0
+ARG REBAR_VERSION=3.27.0
 ARG REBAR_SHA512=158473850233093e6a1417e9779919cb6768402ea967db510d926bc5e74361377e9176014e827c622098e0dbf96b505677addc4bd4817ce2b9b4f4bc8121768b
 ARG REBAR_INSTALLS=1.18.3
 ARG REBAR_OTP=27
@@ -135,7 +135,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 # Python self-gate linters.
 # renovate: datasource=pypi depName=ruff
-ARG RUFF_VERSION=0.16.4
+ARG RUFF_VERSION=0.16.5
 # renovate: datasource=pypi depName=black
 ARG BLACK_VERSION=26.5.1
 # renovate: datasource=pypi depName=flake8
