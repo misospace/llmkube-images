@@ -43,9 +43,17 @@
     },
     {
       description: [
-        "LLMKube coder image — one grouped PR per LLMKube release",
+        "LLMKube coder image — one PR per LLMKube release.",
+        "matchDepNames is load-bearing: apps/llmkube-coder/ holds ten annotated",
+        "dependencies (godot, hex, rebar3, ruff, black, flake8, yamllint,",
+        "eslint and the node base image alongside llmkube). Matching the",
+        "directory alone swept all of them into this group and titled the",
+        "result after it, so a Ruff patch bump shipped as release(llmkube-coders).",
+        "Everything else falls through to the per-app release rule above and",
+        "gets its own PR named after its own dependency.",
       ],
       matchFileNames: ["apps/llmkube-coder/**"],
+      matchDepNames: ["defilantech/llmkube"],
       groupName: "llmkube-coders",
       additionalBranchPrefix: "",
       addLabels: ["app/llmkube-coders"],
