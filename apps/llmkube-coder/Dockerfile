@@ -25,7 +25,7 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 24 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df AS node
+FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS node
 
 # Upgrade npm to latest to patch CVEs in vendored deps (ip-address, brace-expansion, tar).
 # See: https://github.com/misospace/llmkube-images/issues/126
@@ -88,19 +88,17 @@ RUN apt-get update \
 # pinned so a build cannot silently pick up a different executable than the
 # one recorded here. The build fails (set -eux + sha512sum -c) on any drift,
 # including a compromised or typo'd upstream.
-# Checksums are the published values from https://builds.hex.pm/installs/hex.csv
-# and rebar.csv. The install and OTP segments select the compatible artifact for
-# the pinned Elixir/OTP base image; keep them synchronized when updating a tool.
+# Checksums are pinned for the exact artifacts downloaded below. Hex comes
+# from builds.hex.pm; rebar3 comes from its upstream GitHub release asset,
+# because 3.27.0 is not yet available in Hex's installer index.
 # renovate: datasource=github-releases depName=hexpm/hex
 ARG HEX_VERSION=2.5.1
 ARG HEX_SHA512=ad624850969eaeb8a994bfc9c199554269648d23598da4231ab5e1a7c81cc58f5356425022ca8f20d3c3efc4e4625ac32d608b58fa1c6159fe6a3e2ed224c2fa
 ARG HEX_INSTALLS=1.20.0
 ARG HEX_OTP=27
 # renovate: datasource=github-releases depName=erlang/rebar3
-ARG REBAR_VERSION=3.24.0
-ARG REBAR_SHA512=158473850233093e6a1417e9779919cb6768402ea967db510d926bc5e74361377e9176014e827c622098e0dbf96b505677addc4bd4817ce2b9b4f4bc8121768b
-ARG REBAR_INSTALLS=1.18.3
-ARG REBAR_OTP=27
+ARG REBAR_VERSION=3.27.0
+ARG REBAR_SHA512=0d00494d849fdc521a55142278d1f6ba552954fbd65b80d40df8022f594f05d6c99ed1d731bc263691a04176e11d4c6e126c56ba20dca19c5e42d4ffab2e7e36
 COPY --from=elixir /usr/local/lib/erlang /usr/local/lib/erlang
 COPY --from=elixir /usr/local/lib/elixir /usr/local/lib/elixir
 ENV MIX_HOME=/opt/mix
@@ -118,7 +116,7 @@ RUN set -eux; \
       "https://builds.hex.pm/installs/${HEX_INSTALLS}/hex-${HEX_VERSION}-otp-${HEX_OTP}.ez"; \
     echo "${HEX_SHA512}  /opt/mix/archives/hex-${HEX_VERSION}.ez" | sha512sum -c -; \
     curl -fsSL -o /opt/mix/rebar3 \
-      "https://builds.hex.pm/installs/${REBAR_INSTALLS}/rebar3-${REBAR_VERSION}-otp-${REBAR_OTP}"; \
+      "https://github.com/erlang/rebar3/releases/download/${REBAR_VERSION}/rebar3"; \
     echo "${REBAR_SHA512}  /opt/mix/rebar3" | sha512sum -c -; \
     chmod +x /opt/mix/rebar3; \
     chmod -R a+rX /opt/mix; \
@@ -135,7 +133,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 
 # Python self-gate linters.
 # renovate: datasource=pypi depName=ruff
-ARG RUFF_VERSION=0.16.4
+ARG RUFF_VERSION=0.16.5
 # renovate: datasource=pypi depName=black
 ARG BLACK_VERSION=26.5.1
 # renovate: datasource=pypi depName=flake8
