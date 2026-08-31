@@ -136,7 +136,7 @@ jobs:
           permission-contents: write
 
       - name: Get Release Tag
-        uses: ./.github/actions/release-tag
+        uses: $/.github/actions/release-tag
         id: release
         with:
           token: ${{ steps.app-token.outputs.token }}
