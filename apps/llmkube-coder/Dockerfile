@@ -105,6 +105,7 @@ ENV MIX_HOME=/opt/mix
 RUN set -eux; \
     ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl; \
     ln -sf /usr/local/lib/erlang/bin/erlc /usr/local/bin/erlc; \
+    ln -sf /usr/local/lib/erlang/bin/escript /usr/local/bin/escript; \
     ln -sf /usr/local/lib/elixir/bin/elixir /usr/local/bin/elixir; \
     ln -sf /usr/local/lib/elixir/bin/elixirc /usr/local/bin/elixirc; \
     ln -sf /usr/local/lib/elixir/bin/mix /usr/local/bin/mix; \
