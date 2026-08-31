@@ -169,11 +169,65 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  scan:
+    name: Vulnerability Scan
+    needs:
+      - build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    env:
+      APP: ${{ inputs.app }}
+      REPO_OWNER: ${{ github.repository_owner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download Digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: ${{ inputs.app }}-digests-*
+          merge-multiple: true
+
+      - name: Setup Grype
+        uses: anchore/scan-action/download-grype@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
+        id: grype
+
+      - name: Scan Platform Image Digests
+        env:
+          GRYPE_CMD: ${{ steps.grype.outputs.cmd }}
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          set -euo pipefail
+          IMAGE="ghcr.io/${REPO_OWNER}/${APP}"
+          ANY_FAIL=0
+          for d in *; do
+            # The build job writes each platform's digest file as the bare hex
+            # (`${DIGEST#sha256:}`); reconstruct the full `sha256:<hex>`
+            # reference Grype needs to pull from the registry.
+            [ -e "${d}" ] || continue
+            DIGEST="sha256:${d}"
+            echo "::group::Scanning ${IMAGE}@${DIGEST}"
+            if ! "${GRYPE_CMD}" "${IMAGE}@${DIGEST}" --severity high --fail-on high; then
+              ANY_FAIL=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "${ANY_FAIL}" -ne 0 ]; then
+            echo "::error::One or more platform image digests have High/Critical vulnerabilities; refusing to promote to :rolling or semver tags."
+            exit 1
+          fi
+
   merge:
     name: Merge
     runs-on: ubuntu-24.04
     needs:
       - build
+      - scan
     permissions:
       contents: read
       packages: write
