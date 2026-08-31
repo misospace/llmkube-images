@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
 
       - name: Get App Inventory
-        uses: ./.github/actions/app-inventory
+        uses: $/.github/actions/app-inventory
         id: inventory
 
   retry:
@@ -62,7 +62,7 @@ jobs:
         uses: regclient/actions/regctl-installer@f9ceff9bbbc63cd1008e60cec2b27627eedc7322 # main
 
       - name: Get Bake Options
-        uses: ./.github/actions/app-options
+        uses: $/.github/actions/app-options
         id: app-options
         with:
           app: ${{ matrix.app }}
