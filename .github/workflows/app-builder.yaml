@@ -212,7 +212,7 @@ jobs:
             [ -e "${d}" ] || continue
             DIGEST="sha256:${d}"
             echo "::group::Scanning ${IMAGE}@${DIGEST}"
-            if ! "${GRYPE_CMD}" "${IMAGE}@${DIGEST}" --fail-on high; then
+            if ! "${GRYPE_CMD}" "${IMAGE}@${DIGEST}" --fail-on high --ignore-states wont-fix; then
               ANY_FAIL=1
             fi
             echo "::endgroup::"

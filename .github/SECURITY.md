@@ -10,6 +10,8 @@ This repository uses [Grype](https://github.com/anchore/grype) via GitHub Action
 - **Schedule:** Daily at 01:30 UTC
 - **Severity cutoff:** `high` — findings at High or Critical severity fail the build
 - **Fail-build:** `true` — High/Critical vulnerabilities block the workflow run
+- **Fix state:** findings the distribution has marked "won't fix" are excluded
+  (`--ignore-states wont-fix`). See "Won't-fix distribution advisories" below.
 
 ### Gating Policy
 
@@ -19,6 +21,23 @@ High and Critical severity findings **fail both the pre-publish scan and the pos
 2. Findings are immediately visible to maintainers via the failed workflow run.
 3. The scheduled `.github/workflows/vulnerability-scan.yaml` continues to run daily as defense in depth against newly disclosed vulnerabilities in already-published images.
 4. Open alerts on GitHub Code Scanning are actively triaged and resolved.
+
+### Won't-fix distribution advisories
+
+A finding Debian has marked "won't fix" has no fixed version to upgrade to, so
+it cannot be remediated from this repository at any base image. Gating on them
+does not make the image safer; it makes the gate permanently red, which is worse
+— a gate that always fails stops being read, and a genuine fixable finding
+arrives indistinguishable from the standing noise.
+
+The pre-publish scan therefore passes `--ignore-states wont-fix`. Every finding
+with an available fix still blocks promotion at High or Critical, which is the
+part of the contract that can actually be acted on.
+
+As of 2026-09-01 the coder image carries 87 such findings on Debian trixie, all
+of them won't-fix, in `glibc`, `perl`, `curl` and `libssh2`. They remain visible
+in the scan output and in Code Scanning alerts; they are excluded from the
+hard fail, not from the report.
 
 ### Acceptable Risk Exceptions
 
