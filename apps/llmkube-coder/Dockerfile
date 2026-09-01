@@ -40,7 +40,7 @@ FROM golang:1.27-bookworm@sha256:ded31c68586d2e49e760acc2e65a884b23d032e9bbbed0a
 # Elixir/OTP source stage: same Debian base as the runtime, so the copied
 # trees are ABI-compatible. Erlang lives in /usr/local/lib/erlang and Elixir in
 # /usr/local/lib/elixir; both relocate as whole directories.
-FROM hexpm/elixir:1.20.3-erlang-27.0.1-debian-bookworm-20260803@sha256:ceaeabd3ca1cc4a0df72755ae431063a3f48dbeca32e17c7fec266d2c70c0550 AS elixir
+FROM hexpm/elixir:1.20.3-erlang-27.3.4.16-debian-bookworm-20260824@sha256:aa70b3322a96f8fff3a578614c8f89d96b1d5ad81b9018ff4bfc99c58fceb4a7 AS elixir
 
 # Runtime: Python 3.14 + Node + Go 1.26 + Godot headless + Elixir/OTP — one
 # image for every coder self-gate. Rootless coders cannot install anything at
