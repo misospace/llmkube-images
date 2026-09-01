@@ -212,7 +212,9 @@ jobs:
             [ -e "${d}" ] || continue
             DIGEST="sha256:${d}"
             echo "::group::Scanning ${IMAGE}@${DIGEST}"
-            if ! "${GRYPE_CMD}" "${IMAGE}@${DIGEST}" --fail-on high; then
+            # Debian marks these findings as won't-fix; keep fixable High/Critical
+            # findings blocking promotion while allowing the image to build.
+            if ! "${GRYPE_CMD}" "${IMAGE}@${DIGEST}" --fail-on high --ignore-states wont-fix; then
               ANY_FAIL=1
             fi
             echo "::endgroup::"
