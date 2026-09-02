@@ -48,7 +48,7 @@ FROM hexpm/elixir:1.20.3-erlang-27.3.4.16-debian-trixie-20260824@sha256:f8944be5
 # run time, so every fleet runtime is baked here instead (the modern
 # replacement for the old root-and-apt-get pods). amd64 only: Godot upstream
 # ships a linux x86_64 headless binary and the fleet nodes are amd64.
-FROM python:3.14-slim-trixie@sha256:656d12e70054d5fda18a045e2494c96701e9792dd1445f95b3d038df954f57e9
+FROM python:3.14-slim-trixie@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go + Godot + Elixir self-gate toolchain" \
