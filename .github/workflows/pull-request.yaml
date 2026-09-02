@@ -79,6 +79,12 @@ jobs:
       - name: Version-freshness regression tests
         run: bash scripts/test-check-version-freshness.sh
 
+      - name: Check renovate datasource hints
+        run: bash scripts/check-renovate-datasource.sh
+
+      - name: Renovate datasource regression tests
+        run: bash scripts/test-check-renovate-datasource.sh
+
       - name: App test gate regression tests
         run: bash scripts/test-check-app-test.sh
 
