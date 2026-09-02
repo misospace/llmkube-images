@@ -7,7 +7,12 @@ FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe6
 # renovate: datasource=github-releases depName=godotengine/godot
 ARG VERSION=4.7.2
 ARG GODOT_STATUS=stable
-# renovate: datasource=github-release depName=godotengine/godot-builds
+# GODOT_SHA512 is manually pinned — do NOT add a renovate hint here. Renovate
+# tracks version strings, not sha512 checksums (the checksum is not part of
+# GitHub release metadata, so its standard update flow cannot see it). When
+# bumping VERSION above, recompute this hash from the new godot-builds zip and
+# update it in the same change (apps/llmkube-coder/Dockerfile pins the same
+# value and needs the same sync).
 ARG GODOT_SHA512=9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl unzip ca-certificates \

@@ -82,6 +82,12 @@ jobs:
       - name: App test gate regression tests
         run: bash scripts/test-check-app-test.sh
 
+      - name: Renovate datasource regression tests
+        run: bash scripts/test-check-renovate-datasource.sh
+
+      - name: No singular 'github-release' renovate datasource in godot-gate
+        run: bash scripts/check-renovate-datasource.sh
+
       - name: Require executable integration test for every app
         run: |
           for app in apps/*/; do
