@@ -200,6 +200,13 @@ jobs:
       - name: Scan Platform Image Digests
         env:
           GRYPE_CMD: ${{ steps.grype.outputs.cmd }}
+          # SECURITY.md gates publication of :rolling and semver tags. A pull
+          # request builds with release=false, which tags :sandbox and creates
+          # neither — so findings are reported there but do not fail the build.
+          # Blocking them made base-OS advisories with no available fix reject
+          # changes that never touch an image, and the pr-fix loop then spent
+          # its three attempts on a red it could not clear.
+          BLOCKING: ${{ inputs.release }}
         working-directory: ${{ runner.temp }}/digests
         run: |
           set -euo pipefail
@@ -218,8 +225,11 @@ jobs:
             echo "::endgroup::"
           done
           if [ "${ANY_FAIL}" -ne 0 ]; then
-            echo "::error::One or more platform image digests have High/Critical vulnerabilities; refusing to promote to :rolling or semver tags."
-            exit 1
+            if [ "${BLOCKING}" = "true" ]; then
+              echo "::error::One or more platform image digests have High/Critical vulnerabilities; refusing to promote to :rolling or semver tags."
+              exit 1
+            fi
+            echo "::warning::High/Critical vulnerabilities found. This build tags :sandbox only, so promotion is not gated here; the same scan blocks the release build."
           fi
 
   merge:
