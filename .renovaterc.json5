@@ -61,6 +61,19 @@
       semanticCommitScope: "llmkube-coders",
     },
     {
+      description: [
+        "Hold typescript on 6.x in the coder image. TypeScript 7 is the native",
+        "Go port and its npm package ships compiled binaries vendoring",
+        "golang.org/x/text v0.38.0, which Grype flags as GO-2026-5970 (High,",
+        "fixed in 0.39.0) and the pre-publish gate blocks. npm audit cannot see",
+        "it: it reads package trees, not binaries. Lift this once TypeScript",
+        "ships a build with x/text >= 0.39.0.",
+      ],
+      matchFileNames: ["apps/llmkube-coder/**"],
+      matchDepNames: ["typescript"],
+      allowedVersions: "<7",
+    },
+    {
       description: ["Auto-merge Go module dependency updates once CI is green"],
       matchFileNames: ["**/go.mod"],
       automerge: true,

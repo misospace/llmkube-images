@@ -25,29 +25,30 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 24 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS node
+FROM node:24-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS node
 
-# Upgrade npm to latest to patch CVEs in vendored deps (ip-address, brace-expansion, tar).
+# Pin npm to the patched 11.x line; npm 12's dependency tree still carries
+# vulnerable versions of brace-expansion, ip-address, and tar.
 # See: https://github.com/misospace/llmkube-images/issues/126
-RUN npm install -g npm@latest
+RUN npm install -g npm@11.19.1
 
 # Go toolchain stage: deliberately NOT pinned to $BUILDPLATFORM so it resolves to
 # the TARGET arch — the Go SDK copied into the runtime must match the image's
 # platform (the build stage above is builder-arch and only cross-compiles the
 # agent). Same digest as the build stage; the manifest resolves per-arch.
-FROM golang:1.27-bookworm@sha256:ded31c68586d2e49e760acc2e65a884b23d032e9bbbed0ae0c55abd3fcaf4452 AS goruntime
+FROM golang:1.27-trixie@sha256:df98008ecd2b0ecc9f0a94d1b07e3564a9c92b555369b33d9b5f60d0765b2db7 AS goruntime
 
 # Elixir/OTP source stage: same Debian base as the runtime, so the copied
 # trees are ABI-compatible. Erlang lives in /usr/local/lib/erlang and Elixir in
 # /usr/local/lib/elixir; both relocate as whole directories.
-FROM hexpm/elixir:1.20.3-erlang-27.0.1-debian-bookworm-20260803@sha256:ceaeabd3ca1cc4a0df72755ae431063a3f48dbeca32e17c7fec266d2c70c0550 AS elixir
+FROM hexpm/elixir:1.20.3-erlang-27.3.4.16-debian-trixie-20260824@sha256:f8944be5b8524a5e4c450eaba91614fab110dd8fd27e13a7f5bf6c4633fc7e25 AS elixir
 
 # Runtime: Python 3.14 + Node + Go 1.26 + Godot headless + Elixir/OTP — one
 # image for every coder self-gate. Rootless coders cannot install anything at
 # run time, so every fleet runtime is baked here instead (the modern
 # replacement for the old root-and-apt-get pods). amd64 only: Godot upstream
 # ships a linux x86_64 headless binary and the fleet nodes are amd64.
-FROM python:3.14-slim-bookworm@sha256:416f0db2a2b561945630cef9877a7ea0581b27449eb9fd9df42f03e1b74b5b63
+FROM python:3.14-slim-trixie@sha256:656d12e70054d5fda18a045e2494c96701e9792dd1445f95b3d038df954f57e9
 
 LABEL org.opencontainers.image.title="llmkube-coder" \
       org.opencontainers.image.description="LLMKube foreman coder agent (built from source) with a Python + Node + Go + Godot + Elixir self-gate toolchain" \
@@ -105,6 +106,7 @@ ENV MIX_HOME=/opt/mix
 RUN set -eux; \
     ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl; \
     ln -sf /usr/local/lib/erlang/bin/erlc /usr/local/bin/erlc; \
+    ln -sf /usr/local/lib/erlang/bin/escript /usr/local/bin/escript; \
     ln -sf /usr/local/lib/elixir/bin/elixir /usr/local/bin/elixir; \
     ln -sf /usr/local/lib/elixir/bin/elixirc /usr/local/bin/elixirc; \
     ln -sf /usr/local/lib/elixir/bin/mix /usr/local/bin/mix; \
@@ -150,10 +152,18 @@ ARG ESLINT_VERSION=10.9.1
 # renovate: datasource=npm depName=prisma
 ARG PRISMA_VERSION=7.10.0
 # renovate: datasource=npm depName=typescript
-ARG TYPESCRIPT_VERSION=7.0.2
+ARG TYPESCRIPT_VERSION=6.0.3
 RUN npm install -g --no-fund --no-audit \
       "eslint@${ESLINT_VERSION}" "prisma@${PRISMA_VERSION}" "typescript@${TYPESCRIPT_VERSION}" \
-    && rm -rf /root/.npm
+    && mkdir -p /tmp/npm-overrides \
+    && printf '%s\n' '{"private":true,"dependencies":{"deepmerge-ts":"8.0.2"}}' > /tmp/npm-overrides/package.json \
+    && npm install --prefix /tmp/npm-overrides --no-save --no-package-lock --ignore-scripts \
+    && rm -rf /usr/local/lib/node_modules/prisma/node_modules/deepmerge-ts \
+    && cp -a /tmp/npm-overrides/node_modules/deepmerge-ts /usr/local/lib/node_modules/prisma/node_modules/deepmerge-ts \
+    && rm -rf /tmp/npm-overrides /root/.npm \
+    && test "$(node -p "require('/usr/local/lib/node_modules/prisma/node_modules/deepmerge-ts/package.json').version" | cut -d. -f1)" -ge 8 \
+    && prisma --version \
+    && tsc --version
 
 # Go 1.26 toolchain (target-arch) for the Go self-gate: go build/test/vet/gofmt.
 COPY --from=goruntime /usr/local/go /usr/local/go

@@ -28,6 +28,16 @@ func Test(t *testing.T) {
 		`ls "$MIX_HOME"/archives/hex-*.ez >/dev/null 2>&1 && `+
 			`[ -x "$MIX_HOME/rebar3" ] && `+
 			`[ -d "$MIX_HOME" ]`)
+	// Run rebar3, do not just check the executable bit. rebar3 is an escript
+	// and has to be compatible with the OTP this image ships; the bit being
+	// set says nothing about that. This became load-bearing when the download
+	// moved off builds.hex.pm — that URL selected an artifact per OTP release
+	// (rebar3-$VERSION-otp-27), while the GitHub release asset is one generic
+	// escript for every OTP. Nothing else here would notice a mismatch: the
+	// mix smoke test below builds a bare project with no Erlang dependencies,
+	// so it never invokes rebar3, and the failure would first appear when a
+	// real Elixir gate compiled a dep.
+	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c", `"$MIX_HOME/rebar3" version`)
 }
 
 // TestElixirProjectCompiles proves mix can create, compile, and test a project
