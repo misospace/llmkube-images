@@ -152,7 +152,7 @@ ARG ESLINT_VERSION=10.9.1
 # renovate: datasource=npm depName=prisma
 ARG PRISMA_VERSION=7.10.0
 # renovate: datasource=npm depName=typescript
-ARG TYPESCRIPT_VERSION=6.0.3
+ARG TYPESCRIPT_VERSION=7.0.2
 RUN npm install -g --no-fund --no-audit \
       "eslint@${ESLINT_VERSION}" "prisma@${PRISMA_VERSION}" "typescript@${TYPESCRIPT_VERSION}" \
     && mkdir -p /tmp/npm-overrides \
@@ -161,6 +161,7 @@ RUN npm install -g --no-fund --no-audit \
     && rm -rf /usr/local/lib/node_modules/prisma/node_modules/deepmerge-ts \
     && cp -a /tmp/npm-overrides/node_modules/deepmerge-ts /usr/local/lib/node_modules/prisma/node_modules/deepmerge-ts \
     && rm -rf /tmp/npm-overrides /root/.npm \
+    && test "$(node -p "require('/usr/local/lib/node_modules/prisma/node_modules/deepmerge-ts/package.json').version" | cut -d. -f1)" -ge 8 \
     && prisma --version \
     && tsc --version
 
