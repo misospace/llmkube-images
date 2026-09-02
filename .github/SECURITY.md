@@ -18,6 +18,16 @@ This repository uses [Grype](https://github.com/anchore/grype) via GitHub Action
 High and Critical severity findings **fail both the pre-publish scan and the post-publish scan**. This ensures that:
 
 1. No image with unmitigated High/Critical vulnerabilities is published as `:rolling` or a semver tag. The pre-publish Grype scan in `.github/workflows/app-builder.yaml` runs against every platform image digest built for the app and is a hard prerequisite of the `merge` job, so a High/Critical finding prevents the multi-platform `:rolling`/semver manifests from being created or pushed.
+
+   The gate is on publication, not on review. A pull request builds with
+   `release: false`, which tags `:sandbox` and creates no `:rolling` or semver
+   tag, so findings are reported on the run and annotated as a warning but do
+   not fail the build. Blocking there enforced a publication policy against a
+   build that publishes nothing it covers: base-OS advisories with no available
+   fix rejected changes that never touched an image, and the automated pr-fix
+   loop then spent its retry budget on a failure it had no way to clear. The
+   release build — push to `main`, or a `workflow_dispatch` with `release: true`
+   — blocks exactly as described above.
 2. Findings are immediately visible to maintainers via the failed workflow run.
 3. The scheduled `.github/workflows/vulnerability-scan.yaml` continues to run daily as defense in depth against newly disclosed vulnerabilities in already-published images.
 4. Open alerts on GitHub Code Scanning are actively triaged and resolved.
