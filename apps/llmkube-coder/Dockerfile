@@ -152,7 +152,7 @@ ARG ESLINT_VERSION=10.9.1
 # renovate: datasource=npm depName=prisma
 ARG PRISMA_VERSION=7.10.0
 # renovate: datasource=npm depName=typescript
-ARG TYPESCRIPT_VERSION=7.0.2
+ARG TYPESCRIPT_VERSION=6.0.3
 RUN npm install -g --no-fund --no-audit \
       "eslint@${ESLINT_VERSION}" "prisma@${PRISMA_VERSION}" "typescript@${TYPESCRIPT_VERSION}" \
     && mkdir -p /tmp/npm-overrides \
