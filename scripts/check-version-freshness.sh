@@ -92,7 +92,7 @@ semver_gt() {
     if [ -n "$a_pre" ] && [ -z "$b_pre" ]; then return 1; fi
     if [ -z "$a_pre" ] && [ -n "$b_pre" ]; then return 0; fi
     # Both pre-releases (or neither): compare the identifiers.
-    [ "$a_pre" != "$b_pre" ] && [ "$a_pre" > "$b_pre" ]
+    [ "$a_pre" != "$b_pre" ] && [ "$a_pre" \> "$b_pre" ]
 }
 
 # semver_core_numeric TAG
