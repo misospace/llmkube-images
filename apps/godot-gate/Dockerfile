@@ -49,7 +49,11 @@ ENV HOME=/tmp \
     XDG_CACHE_HOME=/tmp/.cache \
     XDG_CONFIG_HOME=/tmp/.config \
     XDG_DATA_HOME=/tmp/.local/share
-RUN git config --system --add safe.directory '*'
+# Scope the safe-directory exemption to the gate's only mount point (/work):
+# the repo is cloned there by a possibly pod-overridden uid, so git would
+# otherwise refuse it as "dubious ownership". '*' would disable the check for
+# every path in the container, which is wider than the gate needs.
+RUN git config --system --add safe.directory /work
 
 # The foreman verify gate clones the target repo into /work and runs as this
 # image's non-root user. Create it world-writable (sticky, like /tmp) so the
