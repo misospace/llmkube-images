@@ -25,9 +25,15 @@ ARG VERSION=1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1
 # fails the build if it ever stops holding.
 FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS node
 
-COPY base-pin.json /tmp/base-pin.json
-
 FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a2ad0a59741cd870adfdc
+
+# base-pin.json is the checked-in manifest-digest table the build-time
+# assertion below consults as the source of truth for which hexpm/elixir tag
+# each ubuntu-<flavor>-YYYYMMDD[.N] VERSION suffix resolves to (see #267). It
+# must live in this stage: a COPY in the node stage above is dropped when the
+# second FROM starts a fresh filesystem, and the assertion would then fail
+# with "missing from base-pin.json" instead of catching a real drift.
+COPY base-pin.json /tmp/base-pin.json
 
 # The tag and the digest in the FROM above are independent inputs: the digest
 # decides the contents, VERSION decides what the published image is called. So
