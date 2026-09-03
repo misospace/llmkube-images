@@ -25,6 +25,8 @@ ARG VERSION=1.20.3-erlang-29.0.5-ubuntu-resolute-20260724.1
 # fails the build if it ever stops holding.
 FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS node
 
+COPY base-pin.json /tmp/base-pin.json
+
 FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a2ad0a59741cd870adfdc
 
 # The tag and the digest in the FROM above are independent inputs: the digest
@@ -37,21 +39,37 @@ FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a
 # erlang:system_info(otp_release), because the latter reports only the major
 # ("29") and would not catch a 29.0.5 -> 29.0.6 drift. An OTP-less VERSION
 # skips that half rather than failing.
+# The Ubuntu-base half compares VERSION's trailing 'ubuntu-<flavor>-YYYYMMDD[.N]'
+# segment to a checked-in manifest digest in base-pin.json (the digest Docker
+# Hub reports for hexpm/elixir:<VERSION>). This is the source of truth the
+# issue called for — the previous dpkg-query -W Install-Date proxy is the same
+# class of weakly-correlated timestamp #178/#267 both regressed on, so it is
+# not used here.
 ARG VERSION
 RUN set -eu; \
     want_elixir="${VERSION%%-*}"; \
     got_elixir="$(elixir --version | sed -n 's/^Elixir \([0-9.]*\).*/\1/p')"; \
     want_otp="$(printf '%s' "$VERSION" | sed -n 's/.*erlang-\([0-9][0-9.]*\).*/\1/p')"; \
     got_otp="$(cat /usr/local/lib/erlang/releases/*/OTP_VERSION)"; \
+    want_pin_key="$(printf '%s' "$VERSION" | sed -n 's/.*\(ubuntu-[a-z]*-[0-9]\{8\}\(\.[0-9]\+\)\?\)$/\1/p')"; \
+    want_pin_digest="$(python3 -c "import json,sys; m=json.load(open('/tmp/base-pin.json')); sys.stdout.write(m.get('$want_pin_key',''))")"; \
+    from_digest="$(awk '/^FROM /{sub(/.*@sha256:/,""); sub(/[^a-f0-9].*/,""); print; exit}' /Dockerfile)"; \
     bad=""; \
     [ "$want_elixir" = "$got_elixir" ] || bad="Elixir: tag says ${want_elixir}, image ships ${got_elixir}"; \
     if [ -n "$want_otp" ] && [ "$want_otp" != "$got_otp" ]; then \
         bad="${bad:+${bad}\n}OTP: tag says ${want_otp}, image ships ${got_otp}"; \
     fi; \
+    if [ -n "$want_pin_key" ]; then \
+        if [ -z "$want_pin_digest" ]; then \
+            bad="${bad:+${bad}\n}Ubuntu base: ${want_pin_key} is missing from base-pin.json (update the pin file when bumping VERSION)"; \
+        elif [ "$want_pin_digest" != "$from_digest" ]; then \
+            bad="${bad:+${bad}\n}Ubuntu base: VERSION ${want_pin_key} expects sha256:${want_pin_digest} but FROM pins sha256:${from_digest}"; \
+        fi; \
+    fi; \
     if [ -n "$bad" ]; then \
         echo "elixir-gate: VERSION disagrees with the pinned digest." >&2; \
         printf '%b\n' "$bad" >&2; \
-        echo "Update the FROM digest and VERSION together, or the published tag will misreport the image." >&2; \
+        echo "Update the FROM digest, VERSION, and apps/elixir-gate/base-pin.json together, or the published tag will misreport the image." >&2; \
         exit 1; \
     fi
 
