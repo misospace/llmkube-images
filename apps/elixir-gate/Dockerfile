@@ -50,7 +50,11 @@ COPY base-pin.json /tmp/base-pin.json
 # Hub reports for hexpm/elixir:<VERSION>). This is the source of truth the
 # issue called for — the previous dpkg-query -W Install-Date proxy is the same
 # class of weakly-correlated timestamp #178/#267 both regressed on, so it is
-# not used here.
+# not used here. The lookup is a plain sed pull on the "<key>": "<digest>"
+# line — hexpm/elixir images do not ship python3, and adding it just for this
+# check would pull in ~30MB for a 6-byte JSON file. The awk that reads the
+# pinned FROM digest skips named build stages (` AS <stage>`) so a prior
+# `FROM node:... AS node` does not win the race for the elixir base line.
 ARG VERSION
 RUN set -eu; \
     want_elixir="${VERSION%%-*}"; \
@@ -58,8 +62,8 @@ RUN set -eu; \
     want_otp="$(printf '%s' "$VERSION" | sed -n 's/.*erlang-\([0-9][0-9.]*\).*/\1/p')"; \
     got_otp="$(cat /usr/local/lib/erlang/releases/*/OTP_VERSION)"; \
     want_pin_key="$(printf '%s' "$VERSION" | sed -n 's/.*\(ubuntu-[a-z]*-[0-9]\{8\}\(\.[0-9]\+\)\?\)$/\1/p')"; \
-    want_pin_digest="$(python3 -c "import json,sys; m=json.load(open('/tmp/base-pin.json')); sys.stdout.write(m.get('$want_pin_key',''))")"; \
-    from_digest="$(awk '/^FROM /{sub(/.*@sha256:/,""); sub(/[^a-f0-9].*/,""); print; exit}' /Dockerfile)"; \
+    want_pin_digest="$(sed -n "s/.*\"$want_pin_key\"[[:space:]]*:[[:space:]]*\"\([a-f0-9]*\)\".*/\1/p" /tmp/base-pin.json)"; \
+    from_digest="$(awk '/^FROM / && !/ AS / {sub(/.*@sha256:/,""); sub(/[^a-f0-9].*/,""); print; exit}' /Dockerfile)"; \
     bad=""; \
     [ "$want_elixir" = "$got_elixir" ] || bad="Elixir: tag says ${want_elixir}, image ships ${got_elixir}"; \
     if [ -n "$want_otp" ] && [ "$want_otp" != "$got_otp" ]; then \
