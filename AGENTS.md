@@ -110,6 +110,17 @@ Bad patterns to flag:
 - Files written to image filesystem at runtime
 - Overly broad ARG defaults that mask version drift
 
+## Local developer hooks
+
+There are no git hooks in this repo. Lefthook was previously installed by a
+`mise` postinstall hook, but its `lefthook.yml` was only an all-comment example
+template, so the hook ran zero checks — the tool, the postinstall step, and the
+template were removed (issue #282). Do not re-add a lefthook tool entry or
+`lefthook install` postinstall step without a `lefthook.yml` that actually wires
+up jobs; the PR lint job in `.github/workflows/pull-request.yaml` (zizmor,
+shellcheck, oxfmt, script regression tests) is the enforcement point, and any
+local hook should mirror those same checks.
+
 ## What to Approve
 
 - Rootless containers with correct USER directives
