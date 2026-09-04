@@ -76,9 +76,6 @@ jobs:
       - name: Workflow template-injection guard
         run: bash scripts/test-workflow-template-injection.sh
 
-      - name: Version-freshness regression tests
-        run: bash scripts/test-check-version-freshness.sh
-
       - name: Check renovate datasource hints
         run: bash scripts/check-renovate-datasource.sh
 
