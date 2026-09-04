@@ -121,6 +121,7 @@ RUN set -eux; \
       "https://github.com/erlang/rebar3/releases/download/${REBAR_VERSION}/rebar3"; \
     echo "${REBAR_SHA512}  /opt/mix/rebar3" | sha512sum -c -; \
     chmod +x /opt/mix/rebar3; \
+    mix local.rebar rebar3 /opt/mix/rebar3 --force; \
     chmod -R a+rX /opt/mix; \
     apt-get purge -y --auto-remove curl; \
     rm -rf /var/lib/apt/lists/*; \

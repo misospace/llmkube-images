@@ -38,6 +38,16 @@ func Test(t *testing.T) {
 	// so it never invokes rebar3, and the failure would first appear when a
 	// real Elixir gate compiled a dep.
 	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c", `"$MIX_HOME/rebar3" version`)
+
+	// Presence and runnability are still not enough: Mix resolves rebar3 from a
+	// version-scoped directory, $MIX_HOME/elixir/<elixir>-otp-<otp>/rebar3, and
+	// ignores $MIX_HOME/rebar3 entirely. Unregistered, the first dep with a
+	// rebar build makes `mix deps.get` install its own copy into root-owned
+	// MIX_HOME, which fails as uid 65534. The bare `mix new` project below has
+	// no Erlang dependencies, so nothing else in this file reaches that path.
+	// Same defect, and same check, as apps/elixir-gate (#297).
+	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c",
+		`ls "$MIX_HOME"/elixir/*/rebar3 >/dev/null 2>&1`)
 }
 
 // TestElixirProjectCompiles proves mix can create, compile, and test a project
