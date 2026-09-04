@@ -149,6 +149,17 @@ Example call site:
 image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
 ```
 
+## Docker Buildx Ordering
+
+Any workflow job or composite action that invokes a `docker buildx` subcommand
+(`bake`, `imagetools`, etc.) MUST run `docker/setup-buildx-action` first.
+The `app-options` composite action (`.github/actions/app-options/action.yaml`)
+includes its own `setup-buildx-action` step, so callers of that action do not
+need to add one. Jobs that call `docker buildx` directly (e.g. the `merge` job
+in `app-builder.yaml`) must include `setup-buildx-action` as an early step
+before any `docker buildx` invocation. Do not rely on the runner image to
+ship the buildx plugin.
+
 ## Known Gaps & Technical Debt
 
 - **Integration test coverage is per-app and CI-driven**: Each app ships a `container_test.go` (e.g. `apps/llmkube-coder/container_test.go`, `apps/godot-gate/container_test.go`, `apps/elixir-gate/container_test.go`) that starts real containers via `testcontainers-go` using the `testhelpers` package (`TestHTTPEndpoint`, `TestCommandSucceeds`, `TestFileExists`). The `.github/actions/app-tests` composite action runs `go test -v ./apps/${APP}/...` with `TEST_IMAGE` set to the freshly built image, and the `test` job in `.github/workflows/app-builder.yaml` invokes it after the build. New apps must add a `container_test.go` so they are covered by the same pipeline.

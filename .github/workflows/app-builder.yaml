@@ -272,6 +272,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Verify Docker Buildx
+        run: |
+          VERSION=$(docker buildx version)
+          if [[ -z "${VERSION}" ]]; then
+            echo "::error::docker buildx version returned empty"
+            exit 1
+          fi
+          echo "${VERSION}"
+
       - name: Create Manifest List and Push
         working-directory: ${{ runner.temp }}/digests
         run: |
