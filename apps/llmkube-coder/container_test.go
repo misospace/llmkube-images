@@ -67,6 +67,29 @@ printf 'extends SceneTree\nfunc _init():\n\tnot valid(\n' > bad.gd
 godot --headless --path . --script res://bad.gd 2>&1 | grep -qi "parse error"`)
 }
 
+// TestDeepmergeTsAllCopiesPatched asserts that every copy of deepmerge-ts in
+// the image's node_modules tree has major version >= 8 (GHSA-ggr8-5vv4-36mx,
+// fixed in 8.0.0). The Dockerfile override fans out to all copies, but a
+// future Prisma layout change could reintroduce a vulnerable nested copy that
+// the build-time assertion misses. This test catches that at image-test time.
+func TestDeepmergeTsAllCopiesPatched(t *testing.T) {
+	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
+	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c", `set -e
+found=0
+for d in $(find /usr/local/lib/node_modules -type d -name deepmerge-ts -path '*/node_modules/*'); do
+  found=1
+  major=$(node -p "require('$d/package.json').version" | cut -d. -f1)
+  if [ "$major" -lt 8 ]; then
+    echo "FAIL: $d reports major $major (< 8)" >&2
+    exit 1
+  fi
+done
+if [ "$found" -eq 0 ]; then
+  echo "FAIL: no deepmerge-ts found under /usr/local/lib/node_modules" >&2
+  exit 1
+fi`)
+}
+
 func TestReadOnlyRootfs(t *testing.T) {
 	// Default tag is the fallback used when $TEST_IMAGE is unset; CI sets
 	// $TEST_IMAGE to the freshly built image. See AGENTS.md → Container Test Patterns.
