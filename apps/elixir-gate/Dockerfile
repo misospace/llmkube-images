@@ -153,7 +153,10 @@ RUN set -eux; \
 
 # Writable state under /tmp so no write lands on a root-owned path: mix builds,
 # hex's cache, and rebar all write during a gate run.
-ENV HOME=/tmp \
+# LANG: the BEAM falls back to latin1 filename encoding without a UTF-8
+# locale, which breaks Elixir apps handling unicode (hexpm images set this).
+ENV LANG=C.UTF-8 \
+    HOME=/tmp \
     HEX_HOME=/tmp/.hex \
     XDG_CACHE_HOME=/tmp/.cache \
     XDG_CONFIG_HOME=/tmp/.config \
