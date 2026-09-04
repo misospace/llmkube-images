@@ -48,6 +48,20 @@ cd smoke
 mix test 2>&1 | grep -qE '[1-9][0-9]* (test|doctest)'
 echo GATE_SMOKE_OK`)
 
+	// The BEAM falls back to latin1 filename encoding without a UTF-8 locale,
+	// which silently corrupts unicode filenames and string literals in gate
+	// projects. The smoke project above is ASCII, so this is the check that
+	// catches a missing LANG: the image must export LANG=C.UTF-8, and elixir
+	// must round-trip a non-ASCII filename and string literal.
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "sh", "-c",
+		`[ "$LANG" = "C.UTF-8" ]`)
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "sh", "-c", `set -e
+d=$(mktemp -d) && cd "$d"
+printf 'ok' > "ünicode.exs"
+elixir -e 'IO.puts(File.read!("ünicode.exs"))' | grep -q ok
+elixir -e 'IO.puts("héllo")' | grep -q 'héllo'
+echo GATE_UNICODE_OK`)
+
 	// Native SQLite extensions are fetched during project setup — pinchflat's
 	// tooling/fetch-sqlean.sh curls a zip and unzips it, and its Repo loads that
 	// extension outside the prod guard, so `mix test` fails without it. bash too:
