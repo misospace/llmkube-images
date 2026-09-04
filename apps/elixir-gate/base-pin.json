@@ -1,0 +1,4 @@
+{
+  "_comment": "Map from the trailing 'ubuntu-<flavor>-YYYYMMDD[.N]' segment of docker-bake.hcl VERSION to the manifest-list digest that Docker Hub reports for hexpm/elixir:<VERSION>. Updated whenever VERSION is bumped: the build-time assertion in apps/elixir-gate/Dockerfile reads this file (copied into the build context as /tmp/base-pin.json) and verifies that the @sha256: digest on the FROM line is the digest this file says corresponds to VERSION. This is the checked-in source of truth for the 'VERSION says X, base is dated X' contract that issue #267/#178 both regressed on; trusting dpkg-query Install-Date or a layer-creation timestamp inside the pulled image was the same weakly-correlated proxy that allowed the original drift.",
+  "ubuntu-resolute-20260724.1": "dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a2ad0a59741cd870adfdc"
+}

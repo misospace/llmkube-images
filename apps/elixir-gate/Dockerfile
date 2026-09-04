@@ -27,6 +27,14 @@ FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c
 
 FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a2ad0a59741cd870adfdc
 
+# base-pin.json is the checked-in manifest-digest table the build-time
+# assertion below consults as the source of truth for which hexpm/elixir tag
+# each ubuntu-<flavor>-YYYYMMDD[.N] VERSION suffix resolves to (see #267). It
+# must live in this stage: a COPY in the node stage above is dropped when the
+# second FROM starts a fresh filesystem, and the assertion would then fail
+# with "missing from base-pin.json" instead of catching a real drift.
+COPY base-pin.json /tmp/base-pin.json
+
 # The tag and the digest in the FROM above are independent inputs: the digest
 # decides the contents, VERSION decides what the published image is called. So
 # a mismatch between them ships silently and the tag lies about what is inside,
@@ -37,21 +45,42 @@ FROM hexpm/elixir:${VERSION}@sha256:dc0c79cbe0468a3df3b2cb7097d95b0d67a5a402ed9a
 # erlang:system_info(otp_release), because the latter reports only the major
 # ("29") and would not catch a 29.0.5 -> 29.0.6 drift. An OTP-less VERSION
 # skips that half rather than failing.
+# The Ubuntu-base half compares VERSION's trailing 'ubuntu-<flavor>-YYYYMMDD[.N]'
+# segment to a checked-in manifest digest in base-pin.json (the digest Docker
+# Hub reports for hexpm/elixir:<VERSION>). This is the source of truth the
+# issue called for — the previous dpkg-query -W Install-Date proxy is the same
+# class of weakly-correlated timestamp #178/#267 both regressed on, so it is
+# not used here. The lookup is a plain sed pull on the "<key>": "<digest>"
+# line — hexpm/elixir images do not ship python3, and adding it just for this
+# check would pull in ~30MB for a 6-byte JSON file. The Dockerfile is copied
+# into the stage so the assertion can inspect the literal FROM digest without
+# relying on a build-container path that BuildKit does not provide.
 ARG VERSION
+COPY Dockerfile /tmp/build.Dockerfile
 RUN set -eu; \
     want_elixir="${VERSION%%-*}"; \
     got_elixir="$(elixir --version | sed -n 's/^Elixir \([0-9.]*\).*/\1/p')"; \
     want_otp="$(printf '%s' "$VERSION" | sed -n 's/.*erlang-\([0-9][0-9.]*\).*/\1/p')"; \
     got_otp="$(cat /usr/local/lib/erlang/releases/*/OTP_VERSION)"; \
+    want_pin_key="$(printf '%s' "$VERSION" | sed -n 's/.*\(ubuntu-[a-z]*-[0-9]\{8\}\(\.[0-9]\+\)\?\)$/\1/p')"; \
+    want_pin_digest="$(sed -n "s/.*\"$want_pin_key\"[[:space:]]*:[[:space:]]*\"\([a-f0-9]*\)\".*/\1/p" /tmp/base-pin.json)"; \
+    from_digest="$(awk '/^FROM hexpm\/elixir:/ && /@sha256:/ {sub(/.*@sha256:/,""); sub(/[^a-f0-9].*/,""); print; exit}' /tmp/build.Dockerfile)"; \
     bad=""; \
     [ "$want_elixir" = "$got_elixir" ] || bad="Elixir: tag says ${want_elixir}, image ships ${got_elixir}"; \
     if [ -n "$want_otp" ] && [ "$want_otp" != "$got_otp" ]; then \
         bad="${bad:+${bad}\n}OTP: tag says ${want_otp}, image ships ${got_otp}"; \
     fi; \
+    if [ -n "$want_pin_key" ]; then \
+        if [ -z "$want_pin_digest" ]; then \
+            bad="${bad:+${bad}\n}Ubuntu base: ${want_pin_key} is missing from base-pin.json (update the pin file when bumping VERSION)"; \
+        elif [ "$want_pin_digest" != "$from_digest" ]; then \
+            bad="${bad:+${bad}\n}Ubuntu base: VERSION ${want_pin_key} expects sha256:${want_pin_digest} but FROM pins sha256:${from_digest}"; \
+        fi; \
+    fi; \
     if [ -n "$bad" ]; then \
         echo "elixir-gate: VERSION disagrees with the pinned digest." >&2; \
         printf '%b\n' "$bad" >&2; \
-        echo "Update the FROM digest and VERSION together, or the published tag will misreport the image." >&2; \
+        echo "Update the FROM digest, VERSION, and apps/elixir-gate/base-pin.json together, or the published tag will misreport the image." >&2; \
         exit 1; \
     fi
 
