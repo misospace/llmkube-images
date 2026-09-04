@@ -27,6 +27,17 @@ func Test(t *testing.T) {
 			`[ -d "$MIX_HOME" ] && `+
 			`mkdir -p "$HEX_HOME" && [ -d "$HEX_HOME" ]`)
 
+	// Presence is not enough: Mix looks for rebar3 under a version-scoped
+	// directory, $MIX_HOME/elixir/<elixir>-otp-<otp>/rebar3, not at
+	// $MIX_HOME/rebar3. A binary at the latter is invisible to Mix, so the
+	// first project with a rebar-built dependency makes `mix deps.get` install
+	// its own copy — which fails, because MIX_HOME is root-owned and the gate
+	// runs as nobody. That took out three pinchflat gate runs whose code had
+	// already passed its own suite (#297). The check above is the same class of
+	// mistake as asserting rebar3's executable bit and calling it verified.
+	testhelpers.TestCommandSucceeds(t, image, roCfg, "sh", "-c",
+		`ls "$MIX_HOME"/elixir/*/rebar3 >/dev/null 2>&1`)
+
 	// A real project must COMPILE and its tests RUN as the non-root user. `elixir
 	// --version` exercises none of that: it writes no _build, invokes no compiler,
 	// and never touches the writable-path setup the gate depends on.
