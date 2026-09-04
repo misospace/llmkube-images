@@ -86,6 +86,15 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
 # Hex and rebar archives go into a world-READABLE shared MIX_HOME rather than
 # into $HOME. The gate's uid is not known at build time and $HOME is a scratch
 # dir, so a HOME-local install would be invisible to the process that runs mix.
+#
+# rebar3 must also be registered where Mix looks for it, not merely present:
+# Mix consults $MIX_HOME/elixir/<elixir>-otp-<otp>/rebar3, so a binary sitting
+# at $MIX_HOME/rebar3 is invisible and `mix deps.get` tries to install its own
+# copy — which fails, because MIX_HOME is root-owned and the gate runs as
+# nobody. `mix local.rebar <path>` installs the already-verified binary into
+# that version-scoped directory and lets Mix compute the version itself, so
+# this does not rot on an Elixir or OTP bump. MIX_HOME stays read-only for the
+# gate: writes belong under /tmp (see below).
 # Versions AND sha512 checksums are pinned so a build cannot silently pick up a
 # different executable than the one recorded here. The build fails (set -eu +
 # sha512sum -c) on any drift, including a compromised or typo'd upstream.
@@ -110,6 +119,7 @@ RUN set -eux; \
       "https://github.com/erlang/rebar3/releases/download/${REBAR_VERSION}/rebar3"; \
     echo "${REBAR_SHA512}  /opt/mix/rebar3" | sha512sum -c -; \
     chmod +x /opt/mix/rebar3; \
+    mix local.rebar rebar3 /opt/mix/rebar3 --force; \
     chmod -R a+rX /opt/mix
 
 # Writable state under /tmp so no write lands on a root-owned path: mix builds,
