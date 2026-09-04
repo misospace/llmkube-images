@@ -235,6 +235,59 @@ else
     fail "drift case: expected WARN line, got: $(printf '%s' "$output4" | grep 'drift-app' || true)"
 fi
 
+# --- test 5: depName injection guard ---------------------------------------
+# A malicious or malformed renovate comment could set depName to a value
+# that begins with `-` (e.g. `-K @/etc/passwd`), which curl would interpret
+# as a flag rather than a URL path component. The script must reject such
+# depName values without invoking curl, and the bake default must be
+# skipped (not flagged OUTDATED, not crashed).
+
+tmpdir5="$(mktemp -d)"
+mkdir -p "$tmpdir5/bin" "$tmpdir5/apps/inject-app"
+
+cat > "$tmpdir5/bin/curl" <<'STUB'
+#!/usr/bin/env bash
+# If the script reaches curl with a malicious depName, fail loudly so the
+# regression test fails rather than silently passing.
+printf 'CURL-INVOKED-WITH-ARGS: %s\n' "$*" >&2
+exit 99
+STUB
+chmod +x "$tmpdir5/bin/curl"
+
+cat > "$tmpdir5/apps/inject-app/docker-bake.hcl" <<'HCL'
+variable "EVIL_VERSION" {
+  // renovate: datasource=github-releases depName=-K@/etc/passwd
+  default = "1.0.0"
+}
+HCL
+
+exit_code5=0
+output5="$(PATH="$tmpdir5/bin:$PATH" REPO_ROOT="$tmpdir5" DRY_RUN=true bash "$SCRIPT" 2>&1)" || exit_code5=$?
+
+if [ "$exit_code5" -eq 0 ]; then
+    pass "inject case: exit 0 (invalid depName is skipped, not crashed)"
+else
+    fail "inject case: expected exit 0, got $exit_code5"
+fi
+
+if printf '%s' "$output5" | grep -q 'CURL-INVOKED-WITH-ARGS'; then
+    fail "inject case: curl must NOT be invoked with a malicious depName (got: $(printf '%s' "$output5" | grep CURL-INVOKED-WITH-ARGS))"
+else
+    pass "inject case: curl not invoked for invalid depName"
+fi
+
+if printf '%s' "$output5" | grep -q 'OUTDATED'; then
+    fail "inject case: invalid depName must not be flagged OUTDATED"
+else
+    pass "inject case: invalid depName skipped, no OUTDATED line"
+fi
+
+if printf '%s' "$output5" | grep -q 'invalid depName'; then
+    pass "inject case: invalid depName warning emitted"
+else
+    fail "inject case: expected invalid depName warning, got: $(printf '%s' "$output5" | grep -E 'inject-app|warn|WARN' || true)"
+fi
+
 # --- summary ---------------------------------------------------------------
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

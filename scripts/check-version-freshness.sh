@@ -208,6 +208,18 @@ for bake_file in "$REPO_ROOT"/apps/*/docker-bake.hcl; do
             continue
         fi
 
+        # Validate dep_name before interpolating into the curl URL. A
+        # malicious or malformed renovate comment could set depName to a
+        # value that begins with `-` (e.g. `-K @/etc/passwd`), which curl
+        # would interpret as a flag rather than a URL path component.
+        # GitHub repository slugs are always owner/name with a restricted
+        # character set, so we reject anything that does not match.
+        if ! [[ "$dep_name" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || [ "${dep_name#-}" != "$dep_name" ]; then
+            warn "$app: skipping $dep_name — invalid depName (must match owner/name)"
+            skipped_count=$((skipped_count + 1))
+            continue
+        fi
+
         # Query the upstream for the latest release tag.
         latest="$(gh_curl "https://api.github.com/repos/${dep_name}/releases/latest" 2>/dev/null \
             | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)" || latest=""
