@@ -131,6 +131,22 @@ if [ "$found" -eq 0 ]; then
 fi`)
 }
 
+// TestRepoFetchToolsPresent pins the tools a repo's own test command shells
+// out to. Gates are not dispatched, so this image runs those commands itself,
+// and the image it replaced on that path (elixir-gate) shipped curl and unzip.
+// Purging them here turned a pinchflat run into
+// "tooling/fetch-sqlean.sh: line 51: curl: command not found" AFTER the coder
+// had already done the work -- a failure with no signal in this repo at all.
+func TestRepoFetchToolsPresent(t *testing.T) {
+	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
+	for _, tool := range []string{"curl", "unzip"} {
+		testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c",
+			`command -v `+tool+` >/dev/null 2>&1 || { echo "FAIL: `+tool+` missing" >&2; exit 1; }`)
+	}
+	// Reachable as the non-root runtime uid, not merely present on disk.
+	testhelpers.TestCommandSucceeds(t, image, nil, "curl", "--version")
+}
+
 func TestReadOnlyRootfs(t *testing.T) {
 	// Default tag is the fallback used when $TEST_IMAGE is unset; CI sets
 	// $TEST_IMAGE to the freshly built image. See AGENTS.md → Container Test Patterns.
