@@ -6,7 +6,6 @@ unix_default_inline_shell_args = "bash -c -o errexit -o pipefail -o nounset"
 gh = "2.100.0"
 go = "1.27.1"
 jq = "1.8.2"
-lefthook = "2.1.12"
 node = "26.8.1"
 oxfmt = "0.66.0"
 shellcheck = "0.11.0"
@@ -39,6 +38,3 @@ find "{{config_root}}/apps" -mindepth 1 -maxdepth 1 -type d -printf "%f\n" | whi
     yq -i ". += {\"app/$app\": [{\"changed-files\": [{\"any-glob-to-any-file\": [\"apps/$app/**\"]}]}]}" {{config_root}}/.github/labeler.yaml
 done
 '''
-
-[hooks]
-postinstall = ["mkdir -p {{config_root}}/.cache", "lefthook install"]
