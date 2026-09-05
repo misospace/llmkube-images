@@ -48,8 +48,15 @@ if [[ ! -f "$DOCKERFILE" ]]; then
 fi
 
 # arg <name> — pull the value of `ARG <name>=<value>` from the Dockerfile.
+#
+# Defensive extractor: matches `^ARG <name>=` and captures everything after
+# the `=` on that line. A Dockerfile that declares `ARG <name>` without
+# `=value` does not match at all (no substitution → empty output), which the
+# caller already guards on with `[[ -n ... ]]`. The same guard catches
+# `ARG <name>=` (empty value). `head -1` keeps the first match if a future
+# Dockerfile accidentally declares the same ARG twice.
 arg() {
-  sed -n "s/^ARG $1=\(.*\)$/\1/p" "$DOCKERFILE" | head -1
+  sed -n "s/^ARG $1=//p" "$DOCKERFILE" | head -1
 }
 
 # Build the download URL for the requested artifact, reading every version
@@ -92,7 +99,10 @@ case "$APP" in
     esac
     ;;
   godot-gate)
-    # godot-gate names the Godot version `VERSION`, not `GODOT_VERSION`.
+    # godot-gate is the only app that names the Godot pin `VERSION` instead
+    # of `GODOT_VERSION` (see apps/godot-gate/Dockerfile:6). Read it into
+    # the local `GODOT_VERSION` variable so the URL builder below can stay
+    # identical to the llmkube-coder case; the rename is purely cosmetic.
     if [[ "$VAR" != "GODOT" ]]; then
       echo "ERROR: godot-gate only pins GODOT_SHA512" >&2
       usage
