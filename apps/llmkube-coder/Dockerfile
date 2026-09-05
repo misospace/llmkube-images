@@ -41,7 +41,7 @@ FROM golang:1.27-trixie@sha256:9baa6b4187bbb98d240372a8a235ac0bb6b5ddd52bba1431d
 # Elixir/OTP source stage: same Debian base as the runtime, so the copied
 # trees are ABI-compatible. Erlang lives in /usr/local/lib/erlang and Elixir in
 # /usr/local/lib/elixir; both relocate as whole directories.
-FROM hexpm/elixir:1.20.4-erlang-27.3.4.16-debian-trixie-20260824@sha256:f13022e4f87abb0c3b59534dab303452b845f871d4e6717aa10643327c1e9521 AS elixir
+FROM hexpm/elixir:1.20.4-erlang-27.3.4.17-debian-trixie-20260824@sha256:3b050a8cadf59d0574849e1ed9056a3946b03c8206bb4678a78320c6453a5a53 AS elixir
 
 # Runtime: Python 3.14 + Node + Go 1.26 + Godot headless + Elixir/OTP — one
 # image for every coder self-gate. Rootless coders cannot install anything at
