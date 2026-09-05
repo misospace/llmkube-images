@@ -82,6 +82,12 @@ jobs:
       - name: Renovate datasource regression tests
         run: bash scripts/test-check-renovate-datasource.sh
 
+      - name: SHA-pin policy regression tests
+        run: bash scripts/test-sha-pin-policy.sh
+
+      - name: SHA-pin helper URL regression tests
+        run: bash scripts/test-update-sha-pin.sh
+
       - name: App test gate regression tests
         run: bash scripts/test-check-app-test.sh
 
