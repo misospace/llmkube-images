@@ -154,28 +154,53 @@ ARG ESLINT_VERSION=10.9.1
 ARG PRISMA_VERSION=7.10.0
 # renovate: datasource=npm depName=typescript
 ARG TYPESCRIPT_VERSION=6.0.3
-# Override Prisma's bundled deepmerge-ts (GHSA-ggr8-5vv4-36mx, High, fixed in 8.0.0).
-# prisma@7.10.0 pulls deepmerge-ts@7.1.5. The override fans out to ALL copies of
-# deepmerge-ts under /usr/local/lib/node_modules, not just the top-level
+# Vulnerable transitives bundled under prisma, replaced after install below.
+# renovate: datasource=npm depName=deepmerge-ts
+ARG DEEPMERGE_TS_VERSION=8.0.2
+# renovate: datasource=npm depName=mysql2
+ARG MYSQL2_VERSION=3.22.0
+# Override the vulnerable transitives Prisma bundles: deepmerge-ts
+# (GHSA-ggr8-5vv4-36mx, High, fixed in 8.0.0) and mysql2 (GHSA-3f6p-5ww8-9rcr,
+# High, fixed in 3.22.0). prisma@7.10.0 pulls deepmerge-ts@7.1.5 and
+# mysql2@3.15.3. The override fans out to ALL copies of each package
+# under /usr/local/lib/node_modules, not just the top-level
 # prisma/node_modules/deepmerge-ts path, because npm's hoisting or a future Prisma
 # minor may nest the vulnerable copy under e.g. prisma/node_modules/@prisma/config/
 # node_modules/deepmerge-ts. A single-path rm -rf + cp -a would silently no-op on
 # a layout change (the rm succeeds on a missing path, the cp writes to a path
 # nothing resolves, and the assertion reads from the same empty path).
+#
+# Only directories carrying a package.json are replaced. prisma also ships a
+# BUNDLED copy at @prisma/studio-core/dist/data/mysql2, which is a build
+# artifact rather than a package: it has no package.json, nothing resolves it as
+# a module, and the SBOM does not report it, so overwriting it with a real
+# package would risk breaking studio-core to fix a finding that is not there.
 # Fallback if Prisma's layout changes again: switch to `npm install --prefix
 # /tmp/override && npm dedupe` or pin Prisma to a known layout-compatible minor.
 RUN npm install -g --no-fund --no-audit \
       "eslint@${ESLINT_VERSION}" "prisma@${PRISMA_VERSION}" "typescript@${TYPESCRIPT_VERSION}" \
     && mkdir -p /tmp/npm-overrides \
-    && printf '%s\n' '{"private":true,"dependencies":{"deepmerge-ts":"8.0.2"}}' > /tmp/npm-overrides/package.json \
+    && printf '%s\n' \
+       "{\"private\":true,\"dependencies\":{\"deepmerge-ts\":\"${DEEPMERGE_TS_VERSION}\",\"mysql2\":\"${MYSQL2_VERSION}\"}}" \
+       > /tmp/npm-overrides/package.json \
     && npm install --prefix /tmp/npm-overrides --no-save --no-package-lock --ignore-scripts \
-    && for d in $(find /usr/local/lib/node_modules -type d -name deepmerge-ts -path '*/node_modules/*'); do \
-         rm -rf "$d" && cp -a /tmp/npm-overrides/node_modules/deepmerge-ts "$d"; \
+    && for pkg in deepmerge-ts mysql2; do \
+         for d in $(find /usr/local/lib/node_modules -type d -name "$pkg" -path '*/node_modules/*'); do \
+           [ -f "$d/package.json" ] || continue; \
+           rm -rf "$d" && cp -a "/tmp/npm-overrides/node_modules/$pkg" "$d"; \
+         done; \
        done \
     && rm -rf /tmp/npm-overrides /root/.npm \
-    && for d in $(find /usr/local/lib/node_modules -type d -name deepmerge-ts -path '*/node_modules/*'); do \
-         major=$(node -p "require('$d/package.json').version" | cut -d. -f1); \
-         test "$major" -ge 8 || { echo "FAIL: $d reports major $major (< 8)"; exit 1; }; \
+    && for pkg in deepmerge-ts mysql2; do \
+         case "$pkg" in \
+           deepmerge-ts) want="${DEEPMERGE_TS_VERSION}" ;; \
+           mysql2)       want="${MYSQL2_VERSION}" ;; \
+         esac; \
+         for d in $(find /usr/local/lib/node_modules -type d -name "$pkg" -path '*/node_modules/*'); do \
+           [ -f "$d/package.json" ] || continue; \
+           got=$(node -p "require('$d/package.json').version"); \
+           test "$got" = "$want" || { echo "FAIL: $d reports $got, want $want"; exit 1; }; \
+         done; \
        done \
     && prisma --version \
     && tsc --version
