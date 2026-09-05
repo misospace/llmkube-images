@@ -79,9 +79,6 @@
 - name: app/llmkube-coder
   color: "2b80ba"
   description: Dependency updates for the llmkube-coder app.
-- name: app/llmkube-coders
-  color: "2b80ba"
-  description: Grouped LLMKube release updates for the llmkube-coder app.
 - name: app/godot-gate
   color: "2b80ba"
   description: Dependency updates for the godot-gate app.
