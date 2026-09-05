@@ -74,3 +74,17 @@
   color: "0052cc"
   description: Stable escalated-lane Saffron worker.
 # Repo-specific labels can be appended below. Unknown labels are not pruned.
+# App labels — added dynamically by Renovate (addLabels: ["app/{{parentDir}}"]
+# in .renovaterc.json5) for dependency updates under apps/<name>.
+- name: app/llmkube-coder
+  color: "2b80ba"
+  description: Dependency updates for the llmkube-coder app.
+- name: app/llmkube-coders
+  color: "2b80ba"
+  description: Grouped LLMKube release updates for the llmkube-coder app.
+- name: app/godot-gate
+  color: "2b80ba"
+  description: Dependency updates for the godot-gate app.
+- name: app/elixir-gate
+  color: "2b80ba"
+  description: Dependency updates for the elixir-gate app.
