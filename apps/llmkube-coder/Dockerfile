@@ -55,43 +55,10 @@ LABEL org.opencontainers.image.title="llmkube-coder" \
       org.opencontainers.image.source="https://github.com/defilantech/LLMKube" \
       org.opencontainers.image.licenses="Apache-2.0"
 
-# git for the coder workspace; libstdc++6 for Node and the BEAM; libtinfo6 for
-# OTP; libfontconfig1 for Godot headless; build-essential because Elixir NIF
-# deps (ecto_sqlite3 et al) compile C during mix deps.compile.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        git ca-certificates libstdc++6 libtinfo6 libfontconfig1 build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Godot headless. Fetched at build time (rootless coders cannot install at run
-# time) and verified against the release's own SHA512-SUMS.txt — a stale digest
-# fails the build loudly rather than installing an unverified engine.
 # renovate: datasource=github-releases depName=godotengine/godot
 ARG GODOT_VERSION=4.7.2
 ARG GODOT_STATUS=stable
 ARG GODOT_SHA512=9aa00f7a605200940bce3027a567b782f49bd8e940dd06ae9e987bd65aee1b1467edd56ed84fcdcbdd44354bf613bdbb4e5d2913e925850368e150c59ed54c65
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl unzip \
-    && curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip" -o /tmp/godot.zip \
-    && echo "${GODOT_SHA512}  /tmp/godot.zip" | sha512sum -c - \
-    && unzip -oq /tmp/godot.zip -d /tmp/godot \
-    && mv "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot \
-    && chmod 0755 /usr/local/bin/godot \
-    && rm -rf /tmp/godot.zip /tmp/godot /var/lib/apt/lists/* \
-    && apt-get purge -y --auto-remove curl unzip
-
-# Elixir/OTP from the hexpm stage. Hex and rebar are installed into a
-# world-READABLE shared MIX_HOME: the runtime uid is unknown at build time and
-# $HOME is a scratch dir, so a HOME-local install would be invisible to the
-# process that runs mix. HEX_HOME (hex's package CACHE, written during mix
-# deps.get) points at /tmp below instead — putting it beside the read-only
-# archives breaks the first real fetch. Versions AND sha512 checksums are
-# pinned so a build cannot silently pick up a different executable than the
-# one recorded here. The build fails (set -eux + sha512sum -c) on any drift,
-# including a compromised or typo'd upstream.
-# Checksums are pinned for the exact artifacts downloaded below. Hex comes
-# from builds.hex.pm; rebar3 comes from its upstream GitHub release asset,
-# because 3.27.0 is not yet available in Hex's installer index.
 # renovate: datasource=github-releases depName=hexpm/hex
 ARG HEX_VERSION=2.5.1
 ARG HEX_SHA512=ad624850969eaeb8a994bfc9c199554269648d23598da4231ab5e1a7c81cc58f5356425022ca8f20d3c3efc4e4625ac32d608b58fa1c6159fe6a3e2ed224c2fa
@@ -100,10 +67,61 @@ ARG HEX_OTP=27
 # renovate: datasource=github-releases depName=erlang/rebar3
 ARG REBAR_VERSION=3.27.0
 ARG REBAR_SHA512=0d00494d849fdc521a55142278d1f6ba552954fbd65b80d40df8022f594f05d6c99ed1d731bc263691a04176e11d4c6e126c56ba20dca19c5e42d4ffab2e7e36
+
+# Elixir/OTP from the hexpm stage. Copied before the consolidated apt-get RUN
+# below so the hex/rebar substep can run `mix local.rebar` and `elixir
+# --version` in the same layer. Hex and rebar are installed into a
+# world-READABLE shared MIX_HOME: the runtime uid is unknown at build time and
+# $HOME is a scratch dir, so a HOME-local install would be invisible to the
+# process that runs mix. HEX_HOME (hex's package CACHE, written during mix
+# deps.get) points at /tmp below instead — putting it beside the read-only
+# archives breaks the first real fetch. Versions AND sha512 checksums are
+# pinned so a build cannot silently pick up a different executable than the
+# one recorded here. The build fails (set -eux + sha512sum -c) on any drift,
+# including a compromised or typo'd upstream. Checksums are pinned for the
+# exact artifacts downloaded below. Hex comes from builds.hex.pm; rebar3 comes
+# from its upstream GitHub release asset, because 3.27.0 is not yet available
+# in Hex's installer index.
 COPY --from=elixir /usr/local/lib/erlang /usr/local/lib/erlang
 COPY --from=elixir /usr/local/lib/elixir /usr/local/lib/elixir
 ENV MIX_HOME=/opt/mix
+
+# Consolidated apt-get for the whole runtime stage: ONE `apt-get update` (one
+# Debian index download) instead of three. Split inside this single RUN:
+#   1. apt-get update
+#   2. install runtime deps (git, ca-certificates, libstdc++6, libtinfo6,
+#      libfontconfig1, build-essential)
+#   3. install curl+unzip temporarily for the godot download; purge after
+#   4. install curl temporarily for the hex/rebar downloads; purge after
+#   5. rm -rf /var/lib/apt/lists/*
+# Do not re-split into per-tool `apt-get update` calls — each one re-downloads
+# the full Debian index and bloats the layer. The temporary curl/unzip installs
+# are purged so the runtime image's filesystem footprint is unchanged.
+#
+# git for the coder workspace; libstdc++6 for Node and the BEAM; libtinfo6 for
+# OTP; libfontconfig1 for Godot headless; build-essential because Elixir NIF
+# deps (ecto_sqlite3 et al) compile C during mix deps.compile.
+#
+# Godot headless. Fetched at build time (rootless coders cannot install at run
+# time) and verified against the release's own SHA512-SUMS.txt — a stale digest
+# fails the build loudly rather than installing an unverified engine.
 RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        git ca-certificates libstdc++6 libtinfo6 libfontconfig1 build-essential; \
+    # godot substep: temporary curl+unzip, purged at the end of the substep.
+    apt-get install -y --no-install-recommends curl unzip; \
+    curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip" -o /tmp/godot.zip; \
+    echo "${GODOT_SHA512}  /tmp/godot.zip" | sha512sum -c -; \
+    unzip -oq /tmp/godot.zip -d /tmp/godot; \
+    mv "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot; \
+    chmod 0755 /usr/local/bin/godot; \
+    rm -rf /tmp/godot.zip /tmp/godot; \
+    apt-get purge -y --auto-remove curl unzip; \
+    # hex/rebar substep: temporary curl, purged at the end of the substep.
+    # (the apt index is kept until the final rm -rf below so this install
+    # resolves without another apt-get update)
+    apt-get install -y --no-install-recommends curl; \
     ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl; \
     ln -sf /usr/local/lib/erlang/bin/erlc /usr/local/bin/erlc; \
     ln -sf /usr/local/lib/erlang/bin/escript /usr/local/bin/escript; \
@@ -111,8 +129,6 @@ RUN set -eux; \
     ln -sf /usr/local/lib/elixir/bin/elixirc /usr/local/bin/elixirc; \
     ln -sf /usr/local/lib/elixir/bin/mix /usr/local/bin/mix; \
     ln -sf /usr/local/lib/elixir/bin/iex /usr/local/bin/iex; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends curl; \
     mkdir -p /opt/mix/archives; \
     curl -fsSL -o /opt/mix/archives/hex-${HEX_VERSION}.ez \
       "https://builds.hex.pm/installs/${HEX_INSTALLS}/hex-${HEX_VERSION}-otp-${HEX_OTP}.ez"; \
@@ -123,9 +139,9 @@ RUN set -eux; \
     chmod +x /opt/mix/rebar3; \
     mix local.rebar rebar3 /opt/mix/rebar3 --force; \
     chmod -R a+rX /opt/mix; \
+    elixir --version; \
     apt-get purge -y --auto-remove curl; \
-    rm -rf /var/lib/apt/lists/*; \
-    elixir --version
+    rm -rf /var/lib/apt/lists/*
 
 # Node 24 + npm from the official image.
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
