@@ -91,12 +91,18 @@ ENV MIX_HOME=/opt/mix
 #   1. apt-get update
 #   2. install runtime deps (git, ca-certificates, libstdc++6, libtinfo6,
 #      libfontconfig1, build-essential)
-#   3. install curl+unzip temporarily for the godot download; purge after
-#   4. install curl temporarily for the hex/rebar downloads; purge after
-#   5. rm -rf /var/lib/apt/lists/*
+#   3. rm -rf /var/lib/apt/lists/*
 # Do not re-split into per-tool `apt-get update` calls — each one re-downloads
-# the full Debian index and bloats the layer. The temporary curl/unzip installs
-# are purged so the runtime image's filesystem footprint is unchanged.
+# the full Debian index and bloats the layer.
+#
+# curl and unzip are installed once and KEPT. They were previously installed
+# and purged per substep, on the reasoning that they were build-only. They are
+# not: gates are not dispatched, so this image runs each repo's own test
+# command and those shell out — pinchflat's tooling/fetch-sqlean.sh curls a
+# release asset before `mix ecto.create`. elixir-gate, the image the coder
+# replaced on that path, ships both; purging them here silently narrowed what
+# a repo may do, and surfaced only as `curl: command not found` in a coder
+# transcript in another repo.
 #
 # git for the coder workspace; libstdc++6 for Node and the BEAM; libtinfo6 for
 # OTP; libfontconfig1 for Godot headless; build-essential because Elixir NIF
@@ -108,20 +114,14 @@ ENV MIX_HOME=/opt/mix
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        git ca-certificates libstdc++6 libtinfo6 libfontconfig1 build-essential; \
-    # godot substep: temporary curl+unzip, purged at the end of the substep.
-    apt-get install -y --no-install-recommends curl unzip; \
+        git ca-certificates libstdc++6 libtinfo6 libfontconfig1 build-essential \
+        curl unzip; \
     curl -fsSL "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-${GODOT_STATUS}/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64.zip" -o /tmp/godot.zip; \
     echo "${GODOT_SHA512}  /tmp/godot.zip" | sha512sum -c -; \
     unzip -oq /tmp/godot.zip -d /tmp/godot; \
     mv "/tmp/godot/Godot_v${GODOT_VERSION}-${GODOT_STATUS}_linux.x86_64" /usr/local/bin/godot; \
     chmod 0755 /usr/local/bin/godot; \
     rm -rf /tmp/godot.zip /tmp/godot; \
-    apt-get purge -y --auto-remove curl unzip; \
-    # hex/rebar substep: temporary curl, purged at the end of the substep.
-    # (the apt index is kept until the final rm -rf below so this install
-    # resolves without another apt-get update)
-    apt-get install -y --no-install-recommends curl; \
     ln -sf /usr/local/lib/erlang/bin/erl /usr/local/bin/erl; \
     ln -sf /usr/local/lib/erlang/bin/erlc /usr/local/bin/erlc; \
     ln -sf /usr/local/lib/erlang/bin/escript /usr/local/bin/escript; \
@@ -140,7 +140,6 @@ RUN set -eux; \
     mix local.rebar rebar3 /opt/mix/rebar3 --force; \
     chmod -R a+rX /opt/mix; \
     elixir --version; \
-    apt-get purge -y --auto-remove curl; \
     rm -rf /var/lib/apt/lists/*
 
 # Node 24 + npm from the official image.
