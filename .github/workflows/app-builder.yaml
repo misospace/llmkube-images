@@ -219,7 +219,14 @@ jobs:
             [ -e "${d}" ] || continue
             DIGEST="sha256:${d}"
             echo "::group::Scanning ${IMAGE}@${DIGEST}"
-            if ! "${GRYPE_CMD}" "${IMAGE}@${DIGEST}" --fail-on high --ignore-states wont-fix; then
+            # --only-fixed, not --ignore-states wont-fix: a finding with a
+            # BLANK fix state is neither "fixed" nor "wont-fix", so the old flag
+            # let base-OS advisories with no available fix block the release.
+            # zlib1g CVE-2026-85091 is one, and it would have blocked every
+            # coder release until Debian shipped a patch. A release gate can
+            # only meaningfully block on something the release could have
+            # fixed; unfixable findings still print in the report above.
+            if ! "${GRYPE_CMD}" "${IMAGE}@${DIGEST}" --fail-on high --only-fixed; then
               ANY_FAIL=1
             fi
             echo "::endgroup::"
