@@ -80,6 +80,45 @@ Bad patterns to flag:
   treat it as a placeholder or edit it to something the digest below it does not ship.
 - Third-party binary downloads: verify checksums when possible
 
+### SHA-Pinned Binary Downloads (manual checksums)
+
+`HEX_SHA512`, `REBAR_SHA512`, and `GODOT_SHA512` are **manual** pins. They are
+not Renovate-managed because upstream does not publish sha512 checksums in a
+Renovate-readable form: the matching `*_VERSION` ARGs carry a `# renovate:`
+hint, but the `*_SHA512` ARGs that follow do not, and the custom regex manager
+in `.renovaterc.json5` only matches the annotated version line.
+
+Consequence: when Renovate opens a PR bumping `HEX_VERSION`, `REBAR_VERSION`,
+or `GODOT_VERSION`, the build fails at the `sha512sum -c -` step until the
+matching SHA is recomputed. Do not merge a Renovate PR for one of these until
+the SHA is in sync.
+
+To recompute and re-pin, run the helper (it reads the version args from the
+Dockerfile, downloads the exact artifact, prints the new SHA, and patches the
+Dockerfile in place):
+
+```sh
+scripts/update-sha-pin.sh <app> <var>
+# e.g.
+scripts/update-sha-pin.sh llmkube-coder HEX
+scripts/update-sha-pin.sh elixir-gate REBAR
+scripts/update-sha-pin.sh godot-gate GODOT
+```
+
+`<app>` is one of `llmkube-coder`, `elixir-gate`, `godot-gate`; `<var>` is one
+of `HEX`, `REBAR`, `GODOT`. The script is idempotent — if the pin already
+matches it leaves the file untouched.
+
+If you must do it by hand, the equivalent is:
+
+```sh
+curl -fsSL <url> | sha512sum | cut -d' ' -f1
+```
+
+where `<url>` is the exact artifact the Dockerfile downloads (see the `curl`
+line in each app's Dockerfile). Update the pin in the same PR, or push a
+follow-up commit to the Renovate branch before merge.
+
 ### Security
 
 - No exposed secrets in entrypoint.sh or defaults/\*
