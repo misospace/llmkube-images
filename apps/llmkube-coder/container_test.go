@@ -100,6 +100,37 @@ if [ "$found" -eq 0 ]; then
 fi`)
 }
 
+// TestMysql2AllCopiesPatched asserts that every resolvable copy of mysql2 in
+// the image's node_modules tree is at or past 3.22.0 (GHSA-3f6p-5ww8-9rcr).
+// prisma pulls it transitively, so a future Prisma bump can reintroduce a
+// vulnerable nested copy the Dockerfile's fan-out did not reach.
+//
+// Directories with no package.json are skipped deliberately: prisma ships a
+// BUNDLED mysql2 at @prisma/studio-core/dist/data/mysql2 which is a build
+// artifact rather than a package. Nothing resolves it as a module and the SBOM
+// does not report it, so asserting a version there would fail on a copy that
+// carries no version and is not the finding.
+func TestMysql2AllCopiesPatched(t *testing.T) {
+	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
+	testhelpers.TestCommandSucceeds(t, image, nil, "sh", "-c", `set -e
+found=0
+for d in $(find /usr/local/lib/node_modules -type d -name mysql2 -path '*/node_modules/*'); do
+  [ -f "$d/package.json" ] || continue
+  found=1
+  v=$(node -p "require('$d/package.json').version")
+  major=$(echo "$v" | cut -d. -f1)
+  minor=$(echo "$v" | cut -d. -f2)
+  if [ "$major" -lt 3 ] || { [ "$major" -eq 3 ] && [ "$minor" -lt 22 ]; }; then
+    echo "FAIL: $d reports $v (< 3.22.0)" >&2
+    exit 1
+  fi
+done
+if [ "$found" -eq 0 ]; then
+  echo "FAIL: no resolvable mysql2 found under /usr/local/lib/node_modules" >&2
+  exit 1
+fi`)
+}
+
 func TestReadOnlyRootfs(t *testing.T) {
 	// Default tag is the fallback used when $TEST_IMAGE is unset; CI sets
 	// $TEST_IMAGE to the freshly built image. See AGENTS.md → Container Test Patterns.
