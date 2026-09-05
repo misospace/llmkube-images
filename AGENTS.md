@@ -171,6 +171,15 @@ in `app-builder.yaml`) must include `setup-buildx-action` as an early step
 before any `docker buildx` invocation. Do not rely on the runner image to
 ship the buildx plugin.
 
+## App Labels
+
+Renovate adds an `app/<app-name>` label to every dependency update on a
+Dockerfile or docker-bake.hcl (`addLabels: ["app/{{parentDir}}"]` in
+`.renovaterc.json5`). Every new app directory under `apps/` must also be added
+to `.github/labels.yaml` under `app/<name>` (see the "Repo-specific labels can
+be appended below" section) so the `label-sync` workflow owns the label as
+source of truth instead of it appearing out of thin air on Renovate PRs.
+
 ## Known Gaps & Technical Debt
 
 - **Integration test coverage is per-app and CI-driven**: Each app ships a `container_test.go` (e.g. `apps/llmkube-coder/container_test.go`, `apps/godot-gate/container_test.go`, `apps/elixir-gate/container_test.go`) that starts real containers via `testcontainers-go` using the `testhelpers` package (`TestHTTPEndpoint`, `TestCommandSucceeds`, `TestFileExists`). The `.github/actions/app-tests` composite action runs `go test -v ./apps/${APP}/...` with `TEST_IMAGE` set to the freshly built image, and the `test` job in `.github/workflows/app-builder.yaml` invokes it after the build. New apps must add a `container_test.go` so they are covered by the same pipeline.
