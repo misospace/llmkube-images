@@ -173,7 +173,7 @@ ARG TYPESCRIPT_VERSION=6.0.3
 # renovate: datasource=npm depName=deepmerge-ts
 ARG DEEPMERGE_TS_VERSION=8.0.2
 # renovate: datasource=npm depName=mysql2
-ARG MYSQL2_VERSION=3.22.0
+ARG MYSQL2_VERSION=3.24.3
 # Override the vulnerable transitives Prisma bundles: deepmerge-ts
 # (GHSA-ggr8-5vv4-36mx, High, fixed in 8.0.0) and mysql2 (GHSA-3f6p-5ww8-9rcr,
 # High, fixed in 3.22.0). prisma@7.10.0 pulls deepmerge-ts@7.1.5 and
