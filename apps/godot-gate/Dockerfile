@@ -37,6 +37,17 @@ LABEL org.opencontainers.image.title="godot-gate" \
 
 # libfontconfig1 is Godot headless's one runtime lib dep; git + ca-certificates
 # for the gate's checkout/fetch.
+#
+# Security rebuild (issue #375): the published :rolling image was built when
+# Debian bookworm still shipped libssh2-1 1.10.0-3+b1 (CVE-2026-7598 Critical,
+# plus CVE-2026-66032 / CVE-2026-58050 / CVE-2026-66034 / CVE-2026-58051 High)
+# and libpcre2-8-0 10.42-1 (CVE-2026-86145 High). Both are pulled transitively
+# by `git` and `libfontconfig1` below and are now patched in the bookworm repo
+# (libssh2-1 1.10.0-3+deb12u1, libpcre2-8-0 10.42-1+deb12u1). The base image
+# digest is unchanged, so there is no version to bump — the only fix is to
+# rebuild: `apt-get install` picks up the patched versions at build time. This
+# comment is the change that triggers the release workflow to rebuild and
+# republish :rolling.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libfontconfig1 ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
