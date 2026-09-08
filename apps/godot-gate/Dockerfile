@@ -37,7 +37,21 @@ LABEL org.opencontainers.image.title="godot-gate" \
 
 # libfontconfig1 is Godot headless's one runtime lib dep; git + ca-certificates
 # for the gate's checkout/fetch.
+#
+# apt-get upgrade, not just install: the base image is a point-in-time snapshot
+# of debian:bookworm-slim, so its packages are frozen at the snapshot date. A
+# plain `apt-get install` only fetches the named packages and their UNMET deps,
+# so it never upgrades a base package whose version already satisfies the
+# constraint — e.g. git depends on libpcre2-8-0 (>= 10.34) and the base layer
+# already ships 10.42-1, so install leaves it there. The scheduled Vulnerability
+# Scan gates on `--fail-on high --only-fixed`, so a High CVE fixed in a newer
+# base package (pcre2 CVE-2026-86145, libssh2 CVE-2025-15661) fails the scan
+# until the image is rebuilt with the patched version. `apt-get upgrade` pulls
+# every installed package to its current bookworm/bookworm-security version,
+# which is what the scan needs. The base image's apt sources point at the live
+# deb.debian.org repos, so this fetches the latest security patches at build.
 RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends libfontconfig1 ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
