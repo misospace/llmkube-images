@@ -14,7 +14,7 @@
 # the two drift apart in #156: Renovate matched a different "latest" for each
 # and the tag ended up describing an image the digest did not ship (#178).
 # This default exists only so a bare `docker build` works locally.
-ARG VERSION=1.20.4-erlang-29.0.6-ubuntu-resolute-20260811.1
+ARG VERSION=1.20.4-erlang-29.0.6-ubuntu-resolute-20260901
 
 # Node source stage: pinchflat's `mix check` includes a prettier_formatting
 # tool (`yarn run lint:check`, see its tooling/.check.exs), so the gate needs a
@@ -25,7 +25,7 @@ ARG VERSION=1.20.4-erlang-29.0.6-ubuntu-resolute-20260811.1
 # fails the build if it ever stops holding.
 FROM node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 AS node
 
-FROM hexpm/elixir:${VERSION}@sha256:71a4e6cbf6d57d42b2bf7bef00321f94dcde8122ad5dc0d23ccdef32e97e146e
+FROM hexpm/elixir:${VERSION}@sha256:5eb7e090958a21772341368cf6d50bec6629e9b9038ce769e93ae92f7d9e4789
 
 # base-pin.json is the checked-in manifest-digest table the build-time
 # assertion below consults as the source of truth for which hexpm/elixir tag
