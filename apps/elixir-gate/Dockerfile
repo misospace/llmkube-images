@@ -23,7 +23,7 @@ ARG VERSION=1.20.4-erlang-29.0.6-ubuntu-resolute-20260811.1
 # Debian-built binary landing on the Ubuntu base below — that direction works
 # because the target's glibc is newer, and the version check after the copy
 # fails the build if it ever stops holding.
-FROM node:24-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS node
+FROM node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 AS node
 
 FROM hexpm/elixir:${VERSION}@sha256:71a4e6cbf6d57d42b2bf7bef00321f94dcde8122ad5dc0d23ccdef32e97e146e
 
