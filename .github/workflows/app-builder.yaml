@@ -150,7 +150,6 @@ jobs:
             *.output=type=image,name=ghcr.io/${{ github.repository_owner }}/${{ inputs.app }},push-by-digest=true,name-canonical=true,push=true,compression=zstd,force-compression=true
             *.platform=${{ matrix.platform }}
             *.provenance=false
-            *.sbom=false
             *.tags=
           source: ./apps/${{ inputs.app }}
           targets: image
