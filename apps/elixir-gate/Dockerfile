@@ -94,7 +94,22 @@ LABEL org.opencontainers.image.title="elixir-gate" \
 # curl + unzip: projects fetch native SQLite extensions during setup — pinchflat's
 # tooling/fetch-sqlean.sh downloads and unzips sqlean, and its Repo loads that
 # extension OUTSIDE the prod guard, so `mix test` needs it too.
+#
+# apt-get upgrade, not just install: the base image is a point-in-time snapshot
+# of the hexpm/elixir ubuntu image, so its packages are frozen at the snapshot
+# date. A plain `apt-get install` only fetches the named packages and their
+# UNMET deps, so it never upgrades a base package whose version already
+# satisfies the constraint — e.g. git depends on libpcre2-8-0 (>= 10.42) and the
+# base layer already ships a version that satisfies that, so install leaves the
+# vulnerable one in place. The scheduled Vulnerability Scan gates the published
+# :rolling image on `--fail-on high --only-fixed`, so a High CVE fixed in a newer
+# base package fails the scan until the image is rebuilt with the patched
+# version. `apt-get upgrade` pulls every installed package to its current
+# Ubuntu version, which is what the scan needs. The base image's apt sources
+# point at the live Ubuntu repos, so the upgrade fetches the latest security
+# patches at build time.
 RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
         build-essential ca-certificates curl git unzip \
     && rm -rf /var/lib/apt/lists/*
