@@ -210,6 +210,27 @@ in `app-builder.yaml`) must include `setup-buildx-action` as an early step
 before any `docker buildx` invocation. Do not rely on the runner image to
 ship the buildx plugin.
 
+## Bake Overrides Are Not Build Flags
+
+Anything passed to `docker/bake-action`'s `set:` input (or `docker buildx bake
+--set`) is parsed by bake's `--set` key parser, NOT by `docker buildx build`.
+Only these target keys are valid: `annotations`, `args`, `attest`,
+`cache-from`, `cache-to`, `call`, `context`, `contexts`, `dockerfile`,
+`entitlements`, `extra-hosts`, `labels`, `load`, `network`, `no-cache`,
+`no-cache-filter`, `output`, `platform`, `policy`, `pull`, `push`, `secrets`,
+`shm-size`, `ssh`, `tags`, `target`, `ulimits`.
+
+`--provenance` and `--sbom` are build flags with no bake equivalent of the same
+name: `--set *.provenance=false` fails the whole run at parse time with
+`ERROR: unknown key: provenance` before a single build step starts. To disable
+an attestation in bake, use the `attest` key:
+
+```yaml
+*.attest=type=provenance,disabled=true
+```
+
+`scripts/check-bake-overrides.sh` (run by the lint job) enforces this.
+
 ## App Labels
 
 Renovate adds an `app/<app-name>` label to every dependency update on a
