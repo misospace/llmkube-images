@@ -149,8 +149,16 @@ jobs:
             *.labels.org.opencontainers.image.vendor=${{ github.repository_owner }}
             *.output=type=image,name=ghcr.io/${{ github.repository_owner }}/${{ inputs.app }},push-by-digest=true,name-canonical=true,push=true,compression=zstd,force-compression=true
             *.platform=${{ matrix.platform }}
-            *.provenance=false
             *.tags=
+          # provenance is a buildx flag, not a bake target key, so it cannot
+          # live in the set: block above (buildx rejects the definition at
+          # parse time with "unknown key: provenance"). Pass it as the
+          # bake-action's provenance input instead, which maps to
+          # --provenance=false -> --set=*.attest=type=provenance,disabled=true.
+          # With push=true, buildx otherwise enables provenance by default,
+          # wrapping each single-arch push-by-digest in an index that the
+          # pre-merge Grype scan cannot resolve (see #391).
+          provenance: false
           source: ./apps/${{ inputs.app }}
           targets: image
 

@@ -76,6 +76,9 @@ jobs:
       - name: Workflow template-injection guard
         run: bash scripts/test-workflow-template-injection.sh
 
+      - name: Bake set block must not pass buildx flags
+        run: bash scripts/test-bake-set-keys.sh
+
       - name: Check renovate datasource hints
         run: bash scripts/check-renovate-datasource.sh
 
