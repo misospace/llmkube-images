@@ -131,6 +131,17 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
+      # Provenance must be disabled per-arch, but `provenance` is a
+      # `docker buildx build` flag and NOT a bake override key: `--set
+      # *.provenance=false` fails the whole run at parse time with
+      # `ERROR: unknown key: provenance` (issue #402; `*.sbom=false` did the
+      # same thing in issue #396). The bake-native spelling is the `attest`
+      # key with `disabled=true`, which also stops docker/bake-action from
+      # injecting its own default `type=provenance` attestation — it only does
+      # that when the parsed definition has no provenance entry at all.
+      # Without the attestation, each push-by-digest stays a plain
+      # single-platform manifest, which the Vulnerability Scan job's Grype
+      # step can resolve from any runner arch (see issue #391).
       - name: Build App
         uses: docker/bake-action@d3418bd7d0e9324001bca92fa8ba175ea7e6dc9b # v7.3.0
         id: bake
@@ -149,7 +160,7 @@ jobs:
             *.labels.org.opencontainers.image.vendor=${{ github.repository_owner }}
             *.output=type=image,name=ghcr.io/${{ github.repository_owner }}/${{ inputs.app }},push-by-digest=true,name-canonical=true,push=true,compression=zstd,force-compression=true
             *.platform=${{ matrix.platform }}
-            *.provenance=false
+            *.attest=type=provenance,disabled=true
             *.tags=
           source: ./apps/${{ inputs.app }}
           targets: image
