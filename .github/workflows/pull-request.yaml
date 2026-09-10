@@ -79,6 +79,12 @@ jobs:
       - name: Check renovate datasource hints
         run: bash scripts/check-renovate-datasource.sh
 
+      - name: Check bake override keys
+        run: bash scripts/check-bake-overrides.sh
+
+      - name: Bake override key regression tests
+        run: bash scripts/test-check-bake-overrides.sh
+
       - name: Renovate datasource regression tests
         run: bash scripts/test-check-renovate-datasource.sh
 
