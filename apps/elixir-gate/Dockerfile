@@ -114,18 +114,26 @@ RUN apt-get update \
         build-essential ca-certificates curl git unzip \
     && rm -rf /var/lib/apt/lists/*
 
+# The ubuntu-resolute base ships Canonical's pebble service manager at
+# /usr/bin/pebble, a Go binary the gate never runs (it sets its own USER/CMD and
+# gate profiles supply the command line). It tracks the base image's Go
+# toolchain, so it fails the `--fail-on high --only-fixed` scan whenever a Go
+# stdlib CVE lands before the base rebuilds. Remove the unused binary so the
+# gate is not gated on a toolchain it does not use.
+RUN rm -f /usr/bin/pebble
+
 # Node + Yarn for `mix check`'s prettier_formatting tool. Everything is made
 # world-readable for the same reason MIX_HOME is: the gate's uid is not known
 # at build time, so anything only root can read is invisible to the process
 # that runs the check. The version calls are a build-time smoke test of the
 # Debian-binary-on-Ubuntu copy above.
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
-COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
-    && npm install -g yarn \
-    && chmod -R a+rX /usr/local/lib/node_modules \
-    && node --version && npm --version && yarn --version
+COPY --from=node /opt /opt
+RUN d="$(ls -d /opt/yarn-v*)" \
+    && ln -sf "${d}/bin/yarn" /usr/local/bin/yarn \
+    && ln -sf "${d}/bin/yarnpkg" /usr/local/bin/yarnpkg \
+    && chmod -R a+rX /opt \
+    && node --version && yarn --version
 
 # Hex and rebar archives go into a world-READABLE shared MIX_HOME rather than
 # into $HOME. The gate's uid is not known at build time and $HOME is a scratch
