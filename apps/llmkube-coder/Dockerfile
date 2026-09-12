@@ -89,11 +89,26 @@ ENV MIX_HOME=/opt/mix
 # Consolidated apt-get for the whole runtime stage: ONE `apt-get update` (one
 # Debian index download) instead of three. Split inside this single RUN:
 #   1. apt-get update
-#   2. install runtime deps (git, ca-certificates, libstdc++6, libtinfo6,
+#   2. apt-get upgrade -y --no-install-recommends
+#   3. install runtime deps (git, ca-certificates, libstdc++6, libtinfo6,
 #      libfontconfig1, build-essential)
-#   3. rm -rf /var/lib/apt/lists/*
+#   4. rm -rf /var/lib/apt/lists/*
 # Do not re-split into per-tool `apt-get update` calls — each one re-downloads
 # the full Debian index and bloats the layer.
+#
+# apt-get upgrade, not just install: the base image is a point-in-time snapshot
+# of python:3.14-slim-trixie, so its packages are frozen at the snapshot date.
+# A plain `apt-get install` only fetches the named packages and their UNMET
+# deps, so it never upgrades a base package whose version already satisfies the
+# constraint — e.g. git depends on libpcre2-8-0 (>= 10.42) and the base layer
+# already ships a version that satisfies that, so install leaves the vulnerable
+# one in place. The scheduled Vulnerability Scan gates the published :rolling
+# image on `--fail-on high --only-fixed`, so a High CVE fixed in a newer base
+# package fails the scan until the image is rebuilt with the patched version.
+# `apt-get upgrade` pulls every installed package to its current trixie version,
+# which is what the scan needs. The base image's apt sources point at the live
+# deb.debian.org repos, so the upgrade fetches the latest security patches at
+# build time.
 #
 # curl and unzip are installed once and KEPT. They were previously installed
 # and purged per substep, on the reasoning that they were build-only. They are
@@ -113,6 +128,7 @@ ENV MIX_HOME=/opt/mix
 # fails the build loudly rather than installing an unverified engine.
 RUN set -eux; \
     apt-get update; \
+    apt-get upgrade -y --no-install-recommends; \
     apt-get install -y --no-install-recommends \
         git ca-certificates libstdc++6 libtinfo6 libfontconfig1 build-essential \
         curl unzip; \
