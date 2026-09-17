@@ -219,13 +219,13 @@ seed_repo() {
 }
 seed_repo /work/origin
 seed_repo /tmp/origin`
-	code, out, err := execInContainer(t, c, []string{"sh", "-c", seed}, tcexec.WithUser("0"))
+	code, out, err := execInContainer(t, c, []string{"sh", "-c", seed}, tcexec.WithUser("0"), tcexec.Multiplexed())
 	require.NoError(t, err)
 	require.Equal(t, 0, code, "seeding root-owned repos failed: %s", out)
 
 	// 1) clone of a root-owned repo that lives UNDER /work: the exemption
 	//    must cover it, so this succeeds.
-	code, out, err = execInContainer(t, c, []string{"git", "clone", "-q", "/work/origin", "/tmp/dw"})
+	code, out, err = execInContainer(t, c, []string{"git", "clone", "-q", "/work/origin", "/tmp/dw"}, tcexec.Multiplexed())
 	require.NoError(t, err)
 	require.Equal(t, 0, code,
 		"cloning a root-owned repo from under /work must succeed (it is the exemption's purpose): %s", out)
@@ -234,7 +234,7 @@ seed_repo /tmp/origin`
 	//    /work: the guard must refuse it with its own message and a non-zero
 	//    exit. This is the regression #430 fixes — the old 'safe.directory *'
 	//    made this clone succeed, so the test would fail on that image.
-	code, out, err = execInContainer(t, c, []string{"git", "clone", "-q", "/tmp/origin", "/tmp/do"})
+	code, out, err = execInContainer(t, c, []string{"git", "clone", "-q", "/tmp/origin", "/tmp/do"}, tcexec.Multiplexed())
 	require.NoError(t, err)
 	require.NotEqual(t, 0, code,
 		"cloning a root-owned repo from outside /work must fail — 'safe.directory' is not scoped to /work: %s", out)
@@ -249,6 +249,12 @@ seed_repo /tmp/origin`
 // exec. The testhelpers package only ships TestCommandSucceeds, which asserts
 // a specific outcome up front, so this local exec mirror is the minimal way to
 // observe raw results for BOTH a success case and a failure case.
+//
+// Pass tcexec.Multiplexed() in opts to get a clean combined stream; the raw
+// reader without that option carries Docker's 8-byte stream-multiplexing
+// headers between frames, so the substring the assertion looks for can land
+// split across two frames and Contains returns false even though the bytes
+// are present in the buffer.
 func execInContainer(t *testing.T, c testcontainers.Container, args []string, opts ...tcexec.ProcessOption) (int, string, error) {
 	t.Helper()
 	require.NotEmpty(t, args, "execInContainer: no command given")
