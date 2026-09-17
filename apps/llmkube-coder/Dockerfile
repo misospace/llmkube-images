@@ -255,7 +255,11 @@ ENV LANG=C.UTF-8 \
     GOCACHE=/tmp/.gocache \
     GOMODCACHE=/tmp/.gomodcache \
     GOPATH=/tmp/go
-RUN git config --system --add safe.directory '*'
+# Scope the safe-directory exemption to the gate's only mount point (/work):
+# the repo is cloned there by a possibly pod-overridden uid, so git would
+# otherwise refuse it as "dubious ownership". '*' would disable the check for
+# every path in the container, which is wider than the gate needs.
+RUN git config --system --add safe.directory /work
 
 COPY --from=build /out/foreman-agent /foreman-agent
 RUN chmod 0755 /foreman-agent \
