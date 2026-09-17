@@ -1,6 +1,6 @@
 module github.com/misospace/llmkube-images
 
-go 1.26.5
+go 1.27
 
 require (
 	github.com/moby/moby/api v1.56.0

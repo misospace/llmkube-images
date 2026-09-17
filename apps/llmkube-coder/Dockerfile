@@ -43,7 +43,7 @@ FROM golang:1.27-trixie@sha256:9baa6b4187bbb98d240372a8a235ac0bb6b5ddd52bba1431d
 # /usr/local/lib/elixir; both relocate as whole directories.
 FROM hexpm/elixir:1.20.4-erlang-27.3.4.17-debian-trixie-20260824@sha256:3b050a8cadf59d0574849e1ed9056a3946b03c8206bb4678a78320c6453a5a53 AS elixir
 
-# Runtime: Python 3.14 + Node + Go 1.26 + Godot headless + Elixir/OTP — one
+# Runtime: Python 3.14 + Node + Go 1.27 + Godot headless + Elixir/OTP — one
 # image for every coder self-gate. Rootless coders cannot install anything at
 # run time, so every fleet runtime is baked here instead (the modern
 # replacement for the old root-and-apt-get pods). amd64 only: Godot upstream
@@ -236,7 +236,7 @@ RUN npm install -g --no-fund --no-audit \
     && prisma --version \
     && tsc --version
 
-# Go 1.26 toolchain (target-arch) for the Go self-gate: go build/test/vet/gofmt.
+# Go 1.27 toolchain (target-arch) for the Go self-gate: go build/test/vet/gofmt.
 COPY --from=goruntime /usr/local/go /usr/local/go
 ENV PATH="/usr/local/go/bin:${PATH}"
 
