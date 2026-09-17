@@ -208,7 +208,7 @@ ARG MYSQL2_VERSION=3.24.4
 # package would risk breaking studio-core to fix a finding that is not there.
 # Fallback if Prisma's layout changes again: switch to `npm install --prefix
 # /tmp/override && npm dedupe` or pin Prisma to a known layout-compatible minor.
-RUN npm install -g --no-fund --no-audit \
+RUN npm install -g --no-fund \
       "eslint@${ESLINT_VERSION}" "prisma@${PRISMA_VERSION}" "typescript@${TYPESCRIPT_VERSION}" \
     && mkdir -p /tmp/npm-overrides \
     && printf '%s\n' \
