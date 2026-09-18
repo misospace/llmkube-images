@@ -180,7 +180,7 @@ RUN pip install --no-cache-dir \
 
 # Node self-gate linters.
 # renovate: datasource=npm depName=eslint
-ARG ESLINT_VERSION=10.10.0
+ARG ESLINT_VERSION=10.11.0
 # renovate: datasource=npm depName=prisma
 ARG PRISMA_VERSION=7.10.0
 # renovate: datasource=npm depName=typescript
