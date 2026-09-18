@@ -50,9 +50,13 @@ those rules.
   each `docker-bake.hcl` and the annotated `ARG`s in the Dockerfiles), opening one PR
   per app and auto-merging once the build + test CI is green. See `.renovaterc.json5`.
 - **Scheduled vulnerability scan**: a nightly workflow
-  (`.github/workflows/vulnerability-scan.yaml`) re-scans the published `:rolling` images
-  with **Grype** (`--fail-on high --only-fixed`) and blocks promotion of `:rolling`/semver
-  tags when a High/Critical vulnerability is found, so a stale tag is never served.
+  (`.github/workflows/vulnerability-scan.yaml`) re-scans each published image with
+  **Grype** (`--fail-on high --only-fixed`), gating both the `:rolling` tag and the
+  highest semver-pinned tag (resolved via the `:rolling` image's
+  `org.opencontainers.image.version` label). Downstream foreman pods pin the semver
+  tag rather than `:rolling`, so the gate covers the tag they actually pull.
+  Unfixable base-OS advisories still print and upload to the security tab; they
+  still do not block.
 
 > Note: the GitHub repo **Description** field (the sidebar header) is currently empty.
 > Filling it is a one-line `gh repo edit --description` on the GitHub settings page and
