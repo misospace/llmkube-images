@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"testing"
 
 	"github.com/misospace/llmkube-images/testhelpers"
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	tcexec "github.com/testcontainers/testcontainers-go/exec"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 func Test(t *testing.T) {
@@ -158,4 +164,104 @@ func TestReadOnlyRootfs(t *testing.T) {
 	testhelpers.TestCommandSucceeds(t, image, roCfg, "go", "version")
 	testhelpers.TestCommandSucceeds(t, image, roCfg, "godot", "--headless", "--version")
 	testhelpers.TestCommandSucceeds(t, image, roCfg, "elixir", "--version")
+}
+
+// TestGitSafeDirectoryScopedToWork proves the safe.directory exemption is
+// scoped to /work, not global (the '*' that #430 retires).
+//
+// The dubious-ownership guard (git >= 2.35.2) fires whenever git reads a
+// repository owned by a uid different from the uid that process runs as. So
+// the probe repos are ROOT-owned (seeded with docker exec -u 0) while every
+// probe git runs as the image's own nobody (65534) — the uid the foreman pod
+// runs the coder as. Both repos live in one persistent container so the
+// seeded state is visible to every probe, and the only thing that differs
+// between the two clones is the SOURCE repo's path:
+//
+//   - clone a root-owned repo UNDER /work → must SUCCEED. This is the
+//     production case: the foreman clones into /work as a (possibly
+//     pod-overridden) uid, and only 'safe.directory /work' keeps git from
+//     refusing it.
+//   - clone a root-owned repo OUTSIDE /work → must FAIL with "detected
+//     dubious ownership", proving the guard is still armed for everything
+//     that is not the workspace.
+//
+// Both regressions are covered: with the old 'safe.directory *' the outside
+// clone succeeds (guard off for every path); with a scoping narrower than
+// /work (or none) the under /work clone fails. The "detected dubious
+// ownership" wording is stable across git 2.35..2.5x, so the assertion does
+// not rot on a git bump.
+func TestGitSafeDirectoryScopedToWork(t *testing.T) {
+	image := testhelpers.GetTestImage("ghcr.io/misospace/llmkube-coder:rolling")
+
+	// One long-lived container; the entrypoint (sleep infinity) is replaced.
+	c, err := testcontainers.Run(t.Context(), image,
+		testcontainers.WithEntrypoint("sleep"),
+		testcontainers.WithEntrypointArgs("infinity"),
+		testcontainers.WithWaitStrategy(wait.ForNop(func(context.Context, wait.StrategyTarget) error { return nil })),
+	)
+	testcontainers.CleanupContainer(t, c)
+	require.NoError(t, err, "start persistent container")
+
+	// Seed two root-owned repos. Root is required only for the OWNERSHIP (the
+	// guard compares the repo's st_uid against the git process uid); the coder
+	// runtime itself runs as 65534 and never as root.
+	seed := `set -e
+seed_repo() {
+  d=$1
+  rm -rf "$d"
+  mkdir -p "$d"
+  git init -q -C "$d"
+  git -C "$d" config user.email a@b
+  git -C "$d" config user.name a
+  echo x > "$d/f"
+  git -C "$d" add f
+  git -C "$d" -c commit.gpgsign=false commit -qm seed
+}
+seed_repo /work/origin
+seed_repo /tmp/origin`
+	code, out, err := execInContainer(t, c, []string{"sh", "-c", seed}, tcexec.WithUser("0"), tcexec.Multiplexed())
+	require.NoError(t, err)
+	require.Equal(t, 0, code, "seeding root-owned repos failed: %s", out)
+
+	// 1) clone of a root-owned repo that lives UNDER /work: the exemption
+	//    must cover it, so this succeeds.
+	code, out, err = execInContainer(t, c, []string{"git", "clone", "-q", "/work/origin", "/tmp/dw"}, tcexec.Multiplexed())
+	require.NoError(t, err)
+	require.Equal(t, 0, code,
+		"cloning a root-owned repo from under /work must succeed (it is the exemption's purpose): %s", out)
+
+	// 2) a clone into a non-/work path whose source is a root-owned repo OUTSIDE
+	//    /work: the guard must refuse it with its own message and a non-zero
+	//    exit. This is the regression #430 fixes — the old 'safe.directory *'
+	//    made this clone succeed, so the test would fail on that image.
+	code, out, err = execInContainer(t, c, []string{"git", "clone", "-q", "/tmp/origin", "/tmp/do"}, tcexec.Multiplexed())
+	require.NoError(t, err)
+	require.NotEqual(t, 0, code,
+		"cloning a root-owned repo from outside /work must fail — 'safe.directory' is not scoped to /work: %s", out)
+	require.Contains(t, out, "detected dubious ownership",
+		"the refusal must be git's dubious-ownership guard, not an unrelated error: %s", out)
+}
+
+// execInContainer runs one command inside an already-running container via
+// docker exec and returns its exit code plus the combined stdout+stderr. The
+// container's configured user is the image's own non-root uid (65534); the
+// extra ProcessOptions (e.g. tcexec.WithUser) override it for that single
+// exec. The testhelpers package only ships TestCommandSucceeds, which asserts
+// a specific outcome up front, so this local exec mirror is the minimal way to
+// observe raw results for BOTH a success case and a failure case.
+//
+// Pass tcexec.Multiplexed() in opts to get a clean combined stream; the raw
+// reader without that option carries Docker's 8-byte stream-multiplexing
+// headers between frames, so the substring the assertion looks for can land
+// split across two frames and Contains returns false even though the bytes
+// are present in the buffer.
+func execInContainer(t *testing.T, c testcontainers.Container, args []string, opts ...tcexec.ProcessOption) (int, string, error) {
+	t.Helper()
+	require.NotEmpty(t, args, "execInContainer: no command given")
+
+	code, reader, err := c.Exec(t.Context(), args, opts...)
+	require.NoError(t, err, "exec %v", args)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(reader)
+	return code, buf.String(), nil
 }
