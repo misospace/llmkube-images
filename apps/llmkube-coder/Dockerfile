@@ -25,7 +25,7 @@ RUN mkdir -p /out /tmp/vresolve \
 
 # Node source stage: the official Node 24 image on the same Debian base as the
 # runtime, so the copied binary is ABI-compatible.
-FROM node:24-trixie-slim@sha256:d7b4e5c4ad20b327d7bb16fab6aecd60ac20aa50f8514eb75a2b059e89abe48e AS node
+FROM node:24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS node
 
 # Pin npm to the patched 11.x line; npm 12's dependency tree still carries
 # vulnerable versions of brace-expansion, ip-address, and tar.
